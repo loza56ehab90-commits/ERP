@@ -45,6 +45,7 @@ import {
   Indent,
   Outdent,
   Archive,
+  Menu,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -354,46 +355,75 @@ const NAV = [
   { label: "Settings", icon: Settings, href: "#" },
 ];
 
-function Sidebar() {
+function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
-    <aside className="hidden lg:flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground">
-      <div className="flex items-center gap-3 px-6 py-6">
-        <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-white p-1 shadow-sm">
-          <img src={erpLogo} alt="ERP+ Mobile Application" className="h-full w-full object-contain" />
-        </div>
-        <div className="leading-tight">
-          <div className="font-display font-semibold text-sm">ERP+</div>
-          <div className="text-[10px] tracking-[0.15em] text-sidebar-foreground/60 uppercase">
-            Mobile Application
+    <>
+      {/* Mobile/tablet backdrop */}
+      {open && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm lg:hidden animate-fade-in"
+          onClick={onClose}
+          aria-hidden
+        />
+      )}
+
+      {/* Sidebar panel */}
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-sidebar text-sidebar-foreground shadow-2xl",
+          "transition-transform duration-300 ease-in-out",
+          "lg:static lg:z-auto lg:w-64 lg:translate-x-0 lg:shadow-none",
+          open ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-3 px-6 py-6">
+          <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-white p-1 shadow-sm shrink-0">
+            <img src={erpLogo} alt="ERP+ Mobile Application" className="h-full w-full object-contain" />
           </div>
+          <div className="leading-tight flex-1 min-w-0">
+            <div className="font-display font-semibold text-sm">ERP+</div>
+            <div className="text-[10px] tracking-[0.15em] text-sidebar-foreground/60 uppercase">
+              Mobile Application
+            </div>
+          </div>
+          {/* Close button — mobile only */}
+          <button
+            onClick={onClose}
+            className="lg:hidden ml-auto flex h-8 w-8 items-center justify-center rounded-full text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+            aria-label="Close menu"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
-      </div>
 
-      <nav className="px-3 py-2">
-        <ul className="space-y-1">
-          {NAV.map((item, i) => (
-            <li key={item.label} className={`animate-slide-in-left delay-${[100,150,200,250,300][i] ?? 300}`}>
-              <a
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
-                  item.active
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm nav-glow"
-                    : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:translate-x-1",
-                )}
-              >
-                <item.icon className={cn("h-4 w-4 transition-transform", item.active ? "" : "group-hover:scale-110")} />
-                {item.label}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </nav>
+        <nav className="px-3 py-2">
+          <ul className="space-y-1">
+            {NAV.map((item, i) => (
+              <li key={item.label} className={`animate-slide-in-left delay-${[100,150,200,250,300][i] ?? 300}`}>
+                <a
+                  href={item.href}
+                  onClick={() => onClose()}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                    item.active
+                      ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm nav-glow"
+                      : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:translate-x-1",
+                  )}
+                >
+                  <item.icon className={cn("h-4 w-4 transition-transform", item.active ? "" : "group-hover:scale-110")} />
+                  {item.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
 
-      <div className="mt-auto px-6 py-6 text-xs text-sidebar-foreground/50">
-        v4.2.1 · © ERP+ Cloud
-      </div>
-    </aside>
+        <div className="mt-auto px-6 py-6 text-xs text-sidebar-foreground/50">
+          v4.2.1 · © ERP+ Cloud
+        </div>
+      </aside>
+    </>
   );
 }
 
@@ -402,13 +432,24 @@ function Sidebar() {
 function TopBar({
   onSearch,
   searchValue,
+  onMenuClick,
 }: {
   onSearch: (v: string) => void;
   searchValue: string;
+  onMenuClick: () => void;
 }) {
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-md">
       <div className="flex h-16 items-center gap-3 px-4 md:px-8">
+        {/* Hamburger — shown on mobile/tablet */}
+        <button
+          onClick={onMenuClick}
+          className="lg:hidden flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+          aria-label="Open menu"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+
         <div className="relative flex-1 max-w-md">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -526,6 +567,7 @@ function RequestsPage() {
   const [rows, setRows] = useState<RequestRow[]>(INITIAL_ROWS);
   const [filter, setFilter] = useState<FilterKey>("Active");
   const [openAdd, setOpenAdd] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [colFilters, setColFilters] = useState<Record<string, string>>({});
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
   const [visibility, setVisibility] = useState<Record<string, boolean>>(DEFAULT_VISIBILITY);
@@ -536,6 +578,14 @@ function RequestsPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [attachmentsRow, setAttachmentsRow] = useState<RequestRow | null>(null);
   const [replyRow, setReplyRow] = useState<RequestRow | null>(null);
+
+  // Close sidebar on desktop resize
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const handler = (e: MediaQueryListEvent) => { if (e.matches) setSidebarOpen(false); };
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   // Reset page on filter changes
   useEffect(() => {
@@ -618,10 +668,10 @@ function RequestsPage() {
 
   return (
     <div className="flex min-h-screen bg-muted/40">
-      <Sidebar />
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <TopBar searchValue={search} onSearch={setSearch} />
+        <TopBar searchValue={search} onSearch={setSearch} onMenuClick={() => setSidebarOpen(true)} />
 
         <main className="flex-1 px-4 md:px-8 py-6 md:py-8 space-y-6">
           {/* Page header */}
