@@ -44,6 +44,7 @@ import {
   Eye,
   Indent,
   Outdent,
+  Archive,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -881,7 +882,7 @@ function RequestsPage() {
                         ))}
                         {/* Actions cell */}
                         <td className="px-4 py-4 align-top">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <button
                               onClick={() => setAttachmentsRow(r)}
                               className="group inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm transition-all hover:border-accent/60 hover:bg-accent/10 hover:text-accent hover:shadow-md"
@@ -896,6 +897,43 @@ function RequestsPage() {
                               <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
                               Reply
                             </button>
+                            {filter === "Archived" ? (
+                              /* Archived tab — allow undoing the archive */
+                              <button
+                                onClick={() =>
+                                  setRows((prev) =>
+                                    prev.map((row) =>
+                                      row.code === r.code ? { ...row, status: "New" } : row
+                                    )
+                                  )
+                                }
+                                className="group inline-flex items-center gap-1.5 rounded-full border border-amber-600/50 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-600 shadow-sm transition-all hover:bg-amber-500 hover:border-amber-500 hover:text-white hover:shadow-md"
+                              >
+                                <Archive className="h-3.5 w-3.5 transition-transform group-hover:rotate-12" />
+                                Restore
+                              </button>
+                            ) : r.status === "Closed" ? (
+                              /* All tab — row is already archived, show a muted badge */
+                              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                                <Archive className="h-3.5 w-3.5" />
+                                Archived
+                              </span>
+                            ) : (
+                              /* Active / All tab — row is not archived yet */
+                              <button
+                                onClick={() =>
+                                  setRows((prev) =>
+                                    prev.map((row) =>
+                                      row.code === r.code ? { ...row, status: "Closed" } : row
+                                    )
+                                  )
+                                }
+                                className="group inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-100 shadow-sm transition-all hover:bg-slate-900 hover:border-slate-900 hover:shadow-md"
+                              >
+                                <Archive className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-0.5" />
+                                Archive
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
