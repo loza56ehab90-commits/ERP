@@ -165,3 +165,126 @@
     letter-spacing: -0.01em;
   }
 }
+
+/* ─── Dynamic animation utilities ──────────────────────────────────── */
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+@keyframes count-up-pop {
+  0%   { transform: scale(0.8); opacity: 0; }
+  70%  { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 oklch(0.62 0.19 258 / 0.35); }
+  70%  { box-shadow: 0 0 0 8px oklch(0.62 0.19 258 / 0); }
+  100% { box-shadow: 0 0 0 0 oklch(0.62 0.19 258 / 0); }
+}
+
+@keyframes row-enter {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes glow-slide {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Entrance helpers */
+.animate-fade-up        { animation: fade-up 0.45s cubic-bezier(0.22,1,0.36,1) both; }
+.animate-fade-in        { animation: fade-in 0.35s ease both; }
+.animate-slide-in-left  { animation: slide-in-left 0.4s cubic-bezier(0.22,1,0.36,1) both; }
+.animate-scale-in       { animation: scale-in 0.35s cubic-bezier(0.22,1,0.36,1) both; }
+.animate-count-pop      { animation: count-up-pop 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+.animate-row-enter      { animation: row-enter 0.3s cubic-bezier(0.22,1,0.36,1) both; }
+
+/* Stagger delays */
+.delay-75  { animation-delay: 75ms; }
+.delay-100 { animation-delay: 100ms; }
+.delay-150 { animation-delay: 150ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-250 { animation-delay: 250ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-350 { animation-delay: 350ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-450 { animation-delay: 450ms; }
+.delay-500 { animation-delay: 500ms; }
+.delay-600 { animation-delay: 600ms; }
+
+/* Hover lift card */
+.card-hover {
+  transition: transform 0.2s cubic-bezier(0.22,1,0.36,1),
+              box-shadow 0.2s cubic-bezier(0.22,1,0.36,1);
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 32px -8px oklch(0.22 0.05 265 / 0.18);
+}
+
+/* Sidebar active nav glow */
+.nav-glow {
+  animation: pulse-ring 2.5s cubic-bezier(0.455,0.03,0.515,0.955) infinite;
+}
+
+/* Gradient shimmer on table refresh */
+.shimmer-row {
+  background: linear-gradient(90deg, transparent 25%, oklch(0.62 0.19 258 / 0.06) 50%, transparent 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+/* Smooth tab underline indicator */
+.tab-active-indicator {
+  position: relative;
+}
+.tab-active-indicator::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 10%;
+  width: 80%;
+  height: 2px;
+  background: var(--color-accent);
+  border-radius: 2px;
+  animation: scale-in 0.2s ease both;
+}
+
+/* Glowing add-request button */
+.btn-glow {
+  background: linear-gradient(135deg, oklch(0.22 0.05 265), oklch(0.28 0.09 258), oklch(0.22 0.05 265));
+  background-size: 200% 200%;
+  animation: glow-slide 4s ease infinite;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-glow:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px -4px oklch(0.22 0.05 265 / 0.5);
+}
+.btn-glow:active { transform: translateY(0); }
+

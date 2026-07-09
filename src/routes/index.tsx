@@ -371,18 +371,18 @@ function Sidebar() {
 
       <nav className="px-3 py-2">
         <ul className="space-y-1">
-          {NAV.map((item) => (
-            <li key={item.label}>
+          {NAV.map((item, i) => (
+            <li key={item.label} className={`animate-slide-in-left delay-${[100,150,200,250,300][i] ?? 300}`}>
               <a
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                   item.active
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
-                    : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm nav-glow"
+                    : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:translate-x-1",
                 )}
               >
-                <item.icon className="h-4 w-4" />
+                <item.icon className={cn("h-4 w-4 transition-transform", item.active ? "" : "group-hover:scale-110")} />
                 {item.label}
               </a>
             </li>
@@ -466,19 +466,19 @@ function StatTile({
     success: "bg-success/10 text-success",
   };
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-card)]">
+    <div className="card-hover rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-card)] group cursor-default">
       <div className="flex items-start justify-between">
         <div>
           <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             {label}
           </div>
-          <div className="mt-2 font-display text-3xl font-semibold tracking-tight">{value}</div>
+          <div className="animate-count-pop mt-2 font-display text-3xl font-semibold tracking-tight">{value}</div>
           <div className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
-            <TrendingUp className="h-3 w-3" />
+            <TrendingUp className="h-3 w-3 transition-transform group-hover:translate-y-[-2px] group-hover:text-accent" />
             {hint}
           </div>
         </div>
-        <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl", tones[tone])}>
+        <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl transition-transform group-hover:scale-110 group-hover:rotate-3", tones[tone])}>
           <Icon className="h-5 w-5" />
         </div>
       </div>
@@ -625,9 +625,9 @@ function RequestsPage() {
 
         <main className="flex-1 px-4 md:px-8 py-6 md:py-8 space-y-6">
           {/* Page header */}
-          <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="animate-fade-up flex flex-wrap items-end justify-between gap-4">
             <div>
-              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground tracking-[0.15em]">
                 Customer Portal
               </div>
               <h1 className="mt-1 font-display text-3xl md:text-4xl font-semibold tracking-tight">
@@ -641,7 +641,7 @@ function RequestsPage() {
               href="https://www.youtube.com"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-secondary transition"
+              className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-secondary hover:scale-105 active:scale-95 transition-all duration-150"
             >
               <PlayCircle className="h-4 w-4 text-destructive" />
               Watch how-to
@@ -649,18 +649,18 @@ function RequestsPage() {
           </div>
 
           {/* KPI tiles */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatTile label="Total requests" value={String(rows.length)} hint="in your workspace" icon={Inbox} tone="primary" />
-            <StatTile label="Active" value={String(activeCount)} hint="team working" icon={Clock} tone="warning" />
-            <StatTile label="Resolved" value={String(resolvedCount)} hint="awaiting confirmation" icon={Sparkles} tone="info" />
-            <StatTile label="Archived" value={String(archivedCount)} hint="closed & done" icon={CheckCircle2} tone="success" />
+          <div className="animate-fade-up delay-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="animate-fade-up delay-100"><StatTile label="Total requests" value={String(rows.length)} hint="in your workspace" icon={Inbox} tone="primary" /></div>
+            <div className="animate-fade-up delay-200"><StatTile label="Active" value={String(activeCount)} hint="team working" icon={Clock} tone="warning" /></div>
+            <div className="animate-fade-up delay-300"><StatTile label="Resolved" value={String(resolvedCount)} hint="awaiting confirmation" icon={Sparkles} tone="info" /></div>
+            <div className="animate-fade-up delay-400"><StatTile label="Archived" value={String(archivedCount)} hint="closed &amp; done" icon={CheckCircle2} tone="success" /></div>
           </div>
 
           {/* Table card */}
-          <div className="rounded-2xl border border-border bg-card shadow-[var(--shadow-elegant)] overflow-hidden">
+          <div className="animate-fade-up delay-200 rounded-2xl border border-border bg-card shadow-[var(--shadow-elegant)] overflow-hidden">
             {/* Action bar */}
             <div className="flex flex-wrap items-center gap-3 px-4 md:px-6 py-4 border-b border-border">
-              <Button className="gap-1.5 rounded-full" onClick={() => setOpenAdd(true)}>
+              <Button className="btn-glow gap-1.5 rounded-full" onClick={() => setOpenAdd(true)}>
                 <Plus className="h-4 w-4" />
                 Add request
               </Button>
@@ -681,10 +681,10 @@ function RequestsPage() {
                       key={f}
                       onClick={() => setFilter(f)}
                       className={cn(
-                        "relative px-4 py-1.5 text-xs font-medium rounded-full transition-colors",
+                        "relative px-4 py-1.5 text-xs font-medium rounded-full transition-all duration-200",
                         filter === f
-                          ? "bg-card text-foreground shadow-sm"
-                          : "text-muted-foreground hover:text-foreground",
+                          ? "bg-card text-foreground shadow-sm scale-105"
+                          : "text-muted-foreground hover:text-foreground hover:scale-105",
                       )}
                     >
                       {f}
@@ -823,12 +823,13 @@ function RequestsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pageRows.map((r) => {
+                  {pageRows.map((r, rowIdx) => {
                     const isExpanded = expanded[r.code];
                     return (
                       <tr
                         key={r.code}
-                        className="border-b border-border last:border-0 hover:bg-secondary/40 transition-colors"
+                        style={{ animationDelay: `${rowIdx * 40}ms` }}
+                        className="animate-row-enter border-b border-border last:border-0 hover:bg-secondary/40 transition-colors group/row"
                       >
                         {visibleColumns.map((c) => (
                           <td key={c.key} className={cn("px-4 py-4 align-top", c.width)}>
