@@ -46,6 +46,9 @@ import {
   Outdent,
   Archive,
   Menu,
+  Moon,
+  Sun,
+  Zap,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -313,34 +316,61 @@ const DEFAULT_VISIBILITY: Record<string, boolean> = Object.fromEntries(
   COLUMNS.map((c) => [c.key, c.defaultVisible]),
 );
 
-/* ---------------- Small primitives ---------------- */
+/* ---------------- Dark mode hook ---------------- */
+
+function useDarkMode() {
+  const [dark, setDark] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return document.documentElement.classList.contains("dark") ||
+      window.matchMedia("(prefers-color-scheme: dark)").matches;
+  });
+
+  useEffect(() => {
+    if (dark) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [dark]);
+
+  return [dark, setDark] as const;
+}
+
+/* ---------------- Premium Status Badge ---------------- */
 
 function StatusBadge({ status }: { status: Status }) {
-  const map: Record<Status, { cls: string; icon: React.ReactNode }> = {
-    New: { cls: "bg-info/10 text-info border-info/20", icon: <Sparkles className="h-3 w-3" /> },
+  const map: Record<Status, { cls: string; dotCls: string; label: string }> = {
+    New: {
+      cls: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60",
+      dotCls: "status-dot-new bg-blue-500",
+      label: "New",
+    },
     "In Progress": {
-      cls: "bg-warning/15 text-warning-foreground border-warning/30",
-      icon: <Clock className="h-3 w-3" />,
+      cls: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60",
+      dotCls: "status-dot-progress bg-amber-500",
+      label: "In Progress",
     },
     Resolved: {
-      cls: "bg-success/10 text-success border-success/20",
-      icon: <CheckCircle2 className="h-3 w-3" />,
+      cls: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60",
+      dotCls: "status-dot-resolved bg-emerald-500",
+      label: "Resolved",
     },
     Closed: {
-      cls: "bg-muted text-muted-foreground border-border",
-      icon: <CheckCircle2 className="h-3 w-3" />,
+      cls: "bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800/40 dark:text-slate-400 dark:border-slate-700/60",
+      dotCls: "status-dot-closed bg-slate-400",
+      label: "Closed",
     },
   };
-  const { cls, icon } = map[status];
+  const { cls, dotCls, label } = map[status];
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium",
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium",
         cls,
       )}
     >
-      {icon}
-      {status}
+      <span className={cn("status-dot", dotCls)} />
+      {label}
     </span>
   );
 }
@@ -361,7 +391,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
       {/* Mobile/tablet backdrop */}
       {open && (
         <div
-          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm lg:hidden animate-fade-in"
+          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm lg:hidden animate-fade-in"
           onClick={onClose}
           aria-hidden
         />
@@ -370,56 +400,110 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
       {/* Sidebar panel */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-sidebar text-sidebar-foreground shadow-2xl",
+          "fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-sidebar text-sidebar-foreground",
           "transition-transform duration-300 ease-in-out",
-          "lg:static lg:z-auto lg:w-64 lg:translate-x-0 lg:shadow-none",
+          "lg:static lg:z-auto lg:w-64 lg:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full",
         )}
+        style={{
+          boxShadow: "4px 0 32px -8px oklch(0 0 0 / 0.4), 1px 0 0 0 oklch(1 0 0 / 0.06)",
+        }}
       >
+        {/* Subtle top gradient accent */}
+        <div
+          className="absolute top-0 left-0 right-0 h-40 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(ellipse at 60% 0%, oklch(0.60 0.20 258 / 0.18) 0%, transparent 70%)",
+          }}
+        />
+
         {/* Header */}
-        <div className="flex items-center gap-3 px-6 py-6">
-          <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-white p-1 shadow-sm shrink-0">
+        <div className="relative flex items-center gap-3 px-5 py-5 border-b border-sidebar-border/60">
+          <div
+            className="flex h-11 w-11 items-center justify-center rounded-xl bg-white p-1 shrink-0 logo-glow"
+          >
             <img src={erpLogo} alt="ERP+ Mobile Application" className="h-full w-full object-contain" />
           </div>
           <div className="leading-tight flex-1 min-w-0">
-            <div className="font-display font-semibold text-sm">ERP+</div>
-            <div className="text-[10px] tracking-[0.15em] text-sidebar-foreground/60 uppercase">
-              Mobile Application
+            <div className="font-display font-bold text-sm text-sidebar-foreground">ERP+</div>
+            <div className="text-[10px] tracking-[0.18em] text-sidebar-foreground/50 uppercase mt-0.5">
+              Customer Portal
             </div>
           </div>
           {/* Close button — mobile only */}
           <button
             onClick={onClose}
-            className="lg:hidden ml-auto flex h-8 w-8 items-center justify-center rounded-full text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+            className="lg:hidden ml-auto flex h-8 w-8 items-center justify-center rounded-full text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
             aria-label="Close menu"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <nav className="px-3 py-2">
-          <ul className="space-y-1">
+        {/* Nav section label */}
+        <div className="px-5 pt-5 pb-1">
+          <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-sidebar-foreground/35">
+            Navigation
+          </span>
+        </div>
+
+        <nav className="px-3 py-1 flex-1">
+          <ul className="space-y-0.5">
             {NAV.map((item, i) => (
-              <li key={item.label} className={`animate-slide-in-left delay-${[100,150,200,250,300][i] ?? 300}`}>
+              <li key={item.label} className={`animate-slide-in-left delay-${[100, 150, 200, 250, 300][i] ?? 300}`}>
                 <a
                   href={item.href}
                   onClick={() => onClose()}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 group",
                     item.active
-                      ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm nav-glow"
-                      : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:translate-x-1",
+                      ? "bg-gradient-to-r from-sidebar-primary/20 to-sidebar-primary/10 text-sidebar-foreground border border-sidebar-primary/25 nav-glow"
+                      : "text-sidebar-foreground/65 hover:bg-sidebar-accent/80 hover:text-sidebar-foreground hover:translate-x-1",
                   )}
                 >
-                  <item.icon className={cn("h-4 w-4 transition-transform", item.active ? "" : "group-hover:scale-110")} />
+                  <span
+                    className={cn(
+                      "flex h-7 w-7 items-center justify-center rounded-lg transition-all duration-200",
+                      item.active
+                        ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
+                        : "text-sidebar-foreground/50 group-hover:bg-sidebar-accent group-hover:text-sidebar-foreground/80",
+                    )}
+                  >
+                    <item.icon className="h-3.5 w-3.5" />
+                  </span>
                   {item.label}
+                  {item.active && (
+                    <span className="ml-auto flex h-1.5 w-1.5 rounded-full bg-sidebar-primary" />
+                  )}
                 </a>
               </li>
             ))}
           </ul>
         </nav>
 
-        <div className="mt-auto px-6 py-6 text-xs text-sidebar-foreground/50">
+        {/* Bottom divider line */}
+        <div className="mx-5 sidebar-gradient-line" />
+
+        {/* User section */}
+        <div className="px-4 py-4 flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold shrink-0">
+            AR
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-semibold text-sidebar-foreground truncate">Ahmed R.</div>
+            <div className="text-[10px] text-sidebar-foreground/45 truncate">Client · ERP PLUS</div>
+          </div>
+          <button
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-sidebar-foreground/45 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+            aria-label="Log out"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        <div className="px-5 pb-4 text-[10px] text-sidebar-foreground/35 flex items-center gap-1.5">
+          <Zap className="h-2.5 w-2.5" />
           v4.2.1 · © ERP+ Cloud
         </div>
       </aside>
@@ -433,50 +517,93 @@ function TopBar({
   onSearch,
   searchValue,
   onMenuClick,
+  dark,
+  onToggleDark,
 }: {
   onSearch: (v: string) => void;
   searchValue: string;
   onMenuClick: () => void;
+  dark: boolean;
+  onToggleDark: () => void;
 }) {
   return (
-    <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-md">
-      <div className="flex h-16 items-center gap-3 px-4 md:px-8">
-        {/* Hamburger — shown on mobile/tablet */}
+    <header
+      className="sticky top-0 z-20 border-b border-border"
+      style={{
+        background: "oklch(var(--background) / 0.85)",
+        backdropFilter: "blur(20px) saturate(160%)",
+        WebkitBackdropFilter: "blur(20px) saturate(160%)",
+      }}
+    >
+      <div className="flex h-16 items-center gap-3 px-4 md:px-6">
+        {/* Hamburger — mobile */}
         <button
           onClick={onMenuClick}
-          className="lg:hidden flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+          className="lg:hidden flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
           aria-label="Open menu"
         >
           <Menu className="h-5 w-5" />
         </button>
 
-        <div className="relative flex-1 max-w-md">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        {/* Search */}
+        <div className="relative flex-1 max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
+            id="global-search"
             value={searchValue}
             onChange={(e) => onSearch(e.target.value)}
-            placeholder="Search requests, projects…"
-            className="pl-9 h-10 bg-secondary/60 border-transparent focus-visible:bg-background"
+            placeholder="Search requests…"
+            className="pl-9 h-9 bg-secondary/70 border-transparent focus-visible:bg-background focus-visible:border-border text-sm rounded-xl"
           />
+          {searchValue && (
+            <button
+              onClick={() => onSearch("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
+
         <div className="ml-auto flex items-center gap-1">
-          <Button variant="ghost" size="icon" aria-label="Notifications" className="relative">
+          {/* Dark mode toggle */}
+          <button
+            id="dark-mode-toggle"
+            onClick={onToggleDark}
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-all duration-200"
+            aria-label="Toggle dark mode"
+          >
+            {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
+
+          {/* Notifications */}
+          <Button
+            id="notifications-btn"
+            variant="ghost"
+            size="icon"
+            aria-label="Notifications"
+            className="relative rounded-xl h-9 w-9"
+          >
             <Bell className="h-4 w-4" />
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-accent" />
+            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-accent notif-dot" />
           </Button>
+
           <div className="mx-2 h-6 w-px bg-border" />
-          <div className="flex items-center gap-2 pr-2">
-            <Avatar className="h-8 w-8">
-              <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
+
+          {/* User */}
+          <div className="flex items-center gap-2.5 pr-1">
+            <Avatar className="h-8 w-8 ring-2 ring-border ring-offset-1 ring-offset-background">
+              <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-primary-foreground text-xs font-bold">
                 AR
               </AvatarFallback>
             </Avatar>
             <div className="hidden md:block text-sm leading-tight">
-              <div className="font-medium">Ahmed R.</div>
+              <div className="font-semibold text-foreground">Ahmed R.</div>
               <div className="text-xs text-muted-foreground">Client · ERP PLUS</div>
             </div>
           </div>
-          <Button variant="ghost" size="icon" aria-label="Log out">
+
+          <Button variant="ghost" size="icon" aria-label="Log out" className="rounded-xl h-9 w-9 text-muted-foreground hover:text-foreground">
             <LogOut className="h-4 w-4" />
           </Button>
         </div>
@@ -493,36 +620,64 @@ function StatTile({
   hint,
   icon: Icon,
   tone,
+  progress,
 }: {
   label: string;
   value: string;
   hint: string;
   icon: React.ElementType;
   tone: "primary" | "info" | "warning" | "success";
+  progress?: number;
 }) {
-  const tones: Record<string, string> = {
-    primary: "bg-primary/10 text-primary",
-    info: "bg-info/10 text-info",
-    warning: "bg-warning/15 text-warning-foreground",
-    success: "bg-success/10 text-success",
-  };
   return (
-    <div className="card-hover rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-card)] group cursor-default">
+    <div className="card-hover rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-card)] group cursor-default relative overflow-hidden">
+      {/* Subtle background glow */}
+      <div
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+        style={{
+          background:
+            tone === "primary"
+              ? "radial-gradient(ellipse at 80% 20%, oklch(0.60 0.20 258 / 0.05) 0%, transparent 70%)"
+              : tone === "warning"
+              ? "radial-gradient(ellipse at 80% 20%, oklch(0.73 0.17 65 / 0.05) 0%, transparent 70%)"
+              : tone === "success"
+              ? "radial-gradient(ellipse at 80% 20%, oklch(0.60 0.16 155 / 0.05) 0%, transparent 70%)"
+              : "radial-gradient(ellipse at 80% 20%, oklch(0.60 0.20 258 / 0.05) 0%, transparent 70%)",
+        }}
+      />
       <div className="flex items-start justify-between">
-        <div>
-          <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        <div className="flex-1 min-w-0">
+          <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/80">
             {label}
           </div>
-          <div className="animate-count-pop mt-2 font-display text-3xl font-semibold tracking-tight">{value}</div>
-          <div className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
+          <div className="animate-count-pop mt-2 font-display text-3xl font-bold tracking-tight text-foreground">
+            {value}
+          </div>
+          <div className="mt-1.5 text-xs text-muted-foreground flex items-center gap-1">
             <TrendingUp className="h-3 w-3 transition-transform group-hover:translate-y-[-2px] group-hover:text-accent" />
             {hint}
           </div>
         </div>
-        <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl transition-transform group-hover:scale-110 group-hover:rotate-3", tones[tone])}>
+        <div
+          className={cn(
+            "flex h-11 w-11 items-center justify-center rounded-2xl transition-all duration-300 group-hover:scale-110 group-hover:rotate-6",
+            `stat-icon-${tone}`,
+          )}
+        >
           <Icon className="h-5 w-5" />
         </div>
       </div>
+      {/* Progress bar */}
+      {progress !== undefined && (
+        <div className="mt-4">
+          <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+            <div
+              className="h-full rounded-full sparkline-bar transition-all duration-700"
+              style={{ width: `${Math.min(100, progress)}%` }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -576,8 +731,10 @@ function RequestsPage() {
   const [pageSize, setPageSize] = useState(5);
   const [search, setSearch] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
   const [attachmentsRow, setAttachmentsRow] = useState<RequestRow | null>(null);
   const [replyRow, setReplyRow] = useState<RequestRow | null>(null);
+  const [dark, setDark] = useDarkMode();
 
   // Close sidebar on desktop resize
   useEffect(() => {
@@ -620,7 +777,6 @@ function RequestsPage() {
           : String(bv ?? "").localeCompare(String(av ?? ""));
       });
     }
-    // refreshKey only forces recompute
     void refreshKey;
     return out;
   }, [rows, filter, colFilters, sort, search, refreshKey]);
@@ -630,9 +786,8 @@ function RequestsPage() {
   const pageStart = (currentPage - 1) * pageSize;
   const pageRows = filtered.slice(pageStart, pageStart + pageSize);
 
-  const activeCount = rows.filter(
-    (r) => r.status === "New" || r.status === "In Progress",
-  ).length;
+  const totalCount = rows.length;
+  const activeCount = rows.filter((r) => r.status === "New" || r.status === "In Progress").length;
   const archivedCount = rows.filter((r) => r.status === "Closed").length;
   const resolvedCount = rows.filter((r) => r.status === "Resolved").length;
 
@@ -664,6 +819,14 @@ function RequestsPage() {
     ]);
   };
 
+  const handleRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshKey((k) => k + 1);
+      setRefreshing(false);
+    }, 600);
+  };
+
   const setColSort = (key: keyof RequestRow, dir: "asc" | "desc") => setSort({ key, dir });
 
   return (
@@ -671,27 +834,37 @@ function RequestsPage() {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <TopBar searchValue={search} onSearch={setSearch} onMenuClick={() => setSidebarOpen(true)} />
+        <TopBar
+          searchValue={search}
+          onSearch={setSearch}
+          onMenuClick={() => setSidebarOpen(true)}
+          dark={dark}
+          onToggleDark={() => setDark((d) => !d)}
+        />
 
-        <main className="flex-1 px-4 md:px-8 py-6 md:py-8 space-y-6">
+        <main className="flex-1 px-4 md:px-6 py-6 md:py-8 space-y-6">
           {/* Page header */}
           <div className="animate-fade-up flex flex-wrap items-end justify-between gap-4">
             <div>
-              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground tracking-[0.15em]">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                <span className="flex h-4 w-4 items-center justify-center rounded bg-primary/10">
+                  <Inbox className="h-2.5 w-2.5 text-primary" />
+                </span>
                 Customer Portal
               </div>
-              <h1 className="mt-1 font-display text-3xl md:text-4xl font-semibold tracking-tight">
+              <h1 className="mt-1.5 font-display text-3xl md:text-4xl font-bold tracking-tight">
                 Requests
               </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Submit clarifications, improvements, and issues — and track every reply.
+              <p className="mt-1 text-sm text-muted-foreground max-w-md">
+                Submit clarifications, improvements, and issues — and track every reply in real time.
               </p>
             </div>
             <a
               href="https://www.youtube.com"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-secondary hover:scale-105 active:scale-95 transition-all duration-150"
+              id="watch-how-to-btn"
+              className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-medium text-foreground hover:bg-secondary hover:scale-105 active:scale-95 transition-all duration-150 shadow-sm"
             >
               <PlayCircle className="h-4 w-4 text-destructive" />
               Watch how-to
@@ -699,49 +872,92 @@ function RequestsPage() {
           </div>
 
           {/* KPI tiles */}
-          <div className="animate-fade-up delay-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="animate-fade-up delay-100"><StatTile label="Total requests" value={String(rows.length)} hint="in your workspace" icon={Inbox} tone="primary" /></div>
-            <div className="animate-fade-up delay-200"><StatTile label="Active" value={String(activeCount)} hint="team working" icon={Clock} tone="warning" /></div>
-            <div className="animate-fade-up delay-300"><StatTile label="Resolved" value={String(resolvedCount)} hint="awaiting confirmation" icon={Sparkles} tone="info" /></div>
-            <div className="animate-fade-up delay-400"><StatTile label="Archived" value={String(archivedCount)} hint="closed &amp; done" icon={CheckCircle2} tone="success" /></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="animate-fade-up delay-100">
+              <StatTile
+                label="Total Requests"
+                value={String(totalCount)}
+                hint="in your workspace"
+                icon={Inbox}
+                tone="primary"
+                progress={(totalCount / 20) * 100}
+              />
+            </div>
+            <div className="animate-fade-up delay-200">
+              <StatTile
+                label="Active"
+                value={String(activeCount)}
+                hint="team working on it"
+                icon={Clock}
+                tone="warning"
+                progress={(activeCount / totalCount) * 100}
+              />
+            </div>
+            <div className="animate-fade-up delay-300">
+              <StatTile
+                label="Resolved"
+                value={String(resolvedCount)}
+                hint="awaiting confirmation"
+                icon={Sparkles}
+                tone="info"
+                progress={(resolvedCount / totalCount) * 100}
+              />
+            </div>
+            <div className="animate-fade-up delay-400">
+              <StatTile
+                label="Archived"
+                value={String(archivedCount)}
+                hint="closed & done"
+                icon={CheckCircle2}
+                tone="success"
+                progress={(archivedCount / totalCount) * 100}
+              />
+            </div>
           </div>
 
           {/* Table card */}
           <div className="animate-fade-up delay-200 rounded-2xl border border-border bg-card shadow-[var(--shadow-elegant)] overflow-hidden">
             {/* Action bar */}
-            <div className="flex flex-wrap items-center gap-3 px-4 md:px-6 py-4 border-b border-border">
-              <Button className="btn-glow gap-1.5 rounded-full" onClick={() => setOpenAdd(true)}>
-                <Plus className="h-4 w-4" />
+            <div className="flex flex-wrap items-center gap-2.5 px-4 md:px-5 py-3.5 border-b border-border bg-card">
+              <Button
+                id="add-request-btn"
+                className="btn-glow gap-1.5 rounded-full text-sm h-9 px-4"
+                onClick={() => setOpenAdd(true)}
+              >
+                <Plus className="h-3.5 w-3.5" />
                 Add request
               </Button>
 
               <ColumnVisibilityMenu visibility={visibility} setVisibility={setVisibility}>
-                <Button variant="outline" size="sm" className="gap-1.5 rounded-full">
+                <Button variant="outline" size="sm" className="gap-1.5 rounded-full h-9 border-border/60 hover:bg-secondary">
                   <Eye className="h-3.5 w-3.5" />
-                  Display data
+                  Columns
                 </Button>
               </ColumnVisibilityMenu>
 
               {/* Segmented filter */}
-              <div className="inline-flex rounded-full bg-secondary p-1 ml-1">
+              <div className="inline-flex rounded-full bg-secondary/80 p-1 ml-1 border border-border/40">
                 {(["All", "Active", "Archived"] as FilterKey[]).map((f) => {
-                  const count = f === "All" ? rows.length : f === "Active" ? activeCount : archivedCount;
+                  const count = f === "All" ? totalCount : f === "Active" ? activeCount : archivedCount;
                   return (
                     <button
                       key={f}
+                      id={`filter-${f.toLowerCase()}-btn`}
                       onClick={() => setFilter(f)}
                       className={cn(
-                        "relative px-4 py-1.5 text-xs font-medium rounded-full transition-all duration-200",
+                        "relative px-4 py-1.5 text-xs font-semibold rounded-full transition-all duration-200",
                         filter === f
-                          ? "bg-card text-foreground shadow-sm scale-105"
-                          : "text-muted-foreground hover:text-foreground hover:scale-105",
+                          ? "bg-card text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground",
                       )}
                     >
                       {f}
                       <span
                         className={cn(
-                          "ml-1.5 inline-flex items-center justify-center rounded-full px-1.5 text-[10px] font-semibold",
-                          filter === f ? "bg-accent/15 text-accent" : "bg-muted text-muted-foreground",
+                          "ml-1.5 inline-flex items-center justify-center rounded-full px-1.5 text-[10px] font-bold",
+                          filter === f
+                            ? "bg-primary/10 text-primary"
+                            : "bg-muted text-muted-foreground",
                         )}
                       >
                         {count}
@@ -752,29 +968,44 @@ function RequestsPage() {
               </div>
 
               <div className="ml-auto flex items-center gap-2">
-                <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={handleExport}>
+                <Button
+                  id="export-btn"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 rounded-full h-9 border-border/60 hover:bg-secondary"
+                  onClick={handleExport}
+                >
                   <Download className="h-3.5 w-3.5" />
-                  Export to Excel
+                  Export
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn("h-9 w-9 rounded-xl", refreshing && "animate-spin-slow")}
+                  onClick={handleRefresh}
+                  aria-label="Refresh"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>
 
             {/* Table */}
             <div className="overflow-x-auto">
-              <table className="w-full text-sm" style={{tableLayout:"auto"}}>
+              <table className="w-full text-sm" style={{ tableLayout: "auto" }}>
                 <thead>
-                  <tr className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
+                  <tr className="border-b border-border table-header-gradient text-left text-xs uppercase tracking-wider text-muted-foreground/80">
                     {visibleColumns.map((c) => (
-                      <th key={c.key} className={cn("px-4 py-3 font-medium", c.width)}>
-                        <div className="flex items-center gap-1">
+                      <th key={c.key} className={cn("px-4 py-3 font-semibold", c.width)}>
+                        <div className="flex items-center gap-1.5">
                           {c.label}
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <button
                                 aria-label={`${c.label} column menu`}
-                                className="rounded p-0.5 hover:bg-background/70"
+                                className="rounded-md p-0.5 hover:bg-background/80 transition-colors"
                               >
-                                <ChevronDown className="h-3 w-3 opacity-70" />
+                                <ChevronDown className="h-3 w-3 opacity-60" />
                               </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start" className="w-48">
@@ -851,20 +1082,21 @@ function RequestsPage() {
                         </div>
                       </th>
                     ))}
-                    <th className="px-4 py-3 font-medium text-right">Actions</th>
+                    <th className="px-4 py-3 font-semibold text-right">Actions</th>
                   </tr>
-                  <tr className="border-b border-border bg-card">
+                  {/* Column filter row */}
+                  <tr className="border-b border-border bg-secondary/30">
                     {visibleColumns.map((c) => (
                       <th key={c.key} className="px-3 py-2">
                         <div className="relative">
-                          <FilterIcon className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+                          <FilterIcon className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground/60" />
                           <input
                             value={colFilters[c.key as string] ?? ""}
                             onChange={(e) =>
                               setColFilters((s) => ({ ...s, [c.key as string]: e.target.value }))
                             }
                             placeholder="Filter…"
-                            className="h-8 w-full rounded-md border border-border bg-background pl-7 pr-2 text-xs placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring/40"
+                            className="h-7 w-full rounded-lg border border-border bg-background pl-7 pr-2 text-xs placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/30 transition"
                           />
                         </div>
                       </th>
@@ -878,23 +1110,25 @@ function RequestsPage() {
                     return (
                       <tr
                         key={r.code}
-                        style={{ animationDelay: `${rowIdx * 40}ms` }}
-                        className="animate-row-enter border-b border-border last:border-0 hover:bg-secondary/40 transition-colors group/row"
+                        style={{ animationDelay: `${rowIdx * 45}ms` }}
+                        className="animate-row-enter border-b border-border/60 last:border-0 hover:bg-secondary/30 transition-colors table-row-hover"
                       >
                         {visibleColumns.map((c) => (
-                          <td key={c.key} className={cn("px-4 py-4 align-top", c.width)}>
+                          <td key={c.key} className={cn("px-4 py-3.5 align-top", c.width)}>
                             {c.key === "code" ? (
-                              <span className="font-medium text-foreground">#{r.code}</span>
+                              <span className="font-mono font-semibold text-foreground bg-secondary/60 rounded-md px-1.5 py-0.5 text-xs">
+                                #{r.code}
+                              </span>
                             ) : c.key === "status" ? (
                               <StatusBadge status={r.status} />
                             ) : c.key === "classification" ? (
-                              <span className="inline-flex items-center gap-1.5 text-foreground/90">
+                              <span className="inline-flex items-center gap-1.5 text-foreground/90 text-xs font-medium">
                                 {r.classification === "Issue" ? (
-                                  <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+                                  <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" />
                                 ) : r.classification === "Improvement Request" || r.classification === "CR" ? (
-                                  <Sparkles className="h-3.5 w-3.5 text-accent" />
+                                  <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
                                 ) : (
-                                  <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                                  <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                                 )}
                                 {r.classification}
                               </span>
@@ -903,7 +1137,7 @@ function RequestsPage() {
                                 <p
                                   dir="auto"
                                   className={cn(
-                                    "text-foreground/90 leading-relaxed",
+                                    "text-foreground/85 leading-relaxed text-sm",
                                     !isExpanded && "line-clamp-2",
                                   )}
                                 >
@@ -914,42 +1148,52 @@ function RequestsPage() {
                                     onClick={() =>
                                       setExpanded((s) => ({ ...s, [r.code]: !s[r.code] }))
                                     }
-                                    className="mt-1 text-xs font-medium text-accent hover:underline"
+                                    className="mt-1 text-xs font-semibold text-accent hover:underline"
                                   >
                                     {isExpanded ? "Show less" : "Read more"}
                                   </button>
                                 )}
                               </div>
                             ) : c.key === "lastReply" ? (
-                              <p dir="auto" className="text-muted-foreground line-clamp-3 max-w-xs">
+                              <p dir="auto" className="text-muted-foreground text-xs line-clamp-3 max-w-xs leading-relaxed">
                                 {r.lastReply}
                               </p>
+                            ) : c.key === "priority" ? (
+                              <span className={cn(
+                                "inline-flex items-center justify-center h-6 w-6 rounded-full text-xs font-bold",
+                                Number(r.priority) <= 3
+                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                                  : Number(r.priority) <= 6
+                                  ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                                  : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+                              )}>
+                                {r.priority || "—"}
+                              </span>
                             ) : (
-                              <span className="text-foreground/90">
+                              <span className="text-foreground/80 text-sm">
                                 {String(r[c.key] ?? "—") || "—"}
                               </span>
                             )}
                           </td>
                         ))}
                         {/* Actions cell */}
-                        <td className="px-4 py-4 align-top">
-                          <div className="flex items-center gap-2 flex-wrap">
+                        <td className="px-4 py-3.5 align-top">
+                          <div className="flex items-center gap-1.5 flex-nowrap">
                             <button
                               onClick={() => setAttachmentsRow(r)}
-                              className="group inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm transition-all hover:border-accent/60 hover:bg-accent/10 hover:text-accent hover:shadow-md"
+                              className="action-btn border-border/60 bg-secondary/60 text-muted-foreground hover:border-accent/50 hover:bg-accent/10 hover:text-accent"
                             >
-                              <Paperclip className="h-3.5 w-3.5 transition-transform group-hover:rotate-12" />
-                              Attachments
+                              <Paperclip className="h-3 w-3" />
+                              Files
                             </button>
                             <button
                               onClick={() => setReplyRow(r)}
-                              className="group inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary shadow-sm transition-all hover:bg-primary hover:text-primary-foreground hover:shadow-md"
+                              className="action-btn border-primary/25 bg-primary/5 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary"
                             >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
                               Reply
                             </button>
                             {filter === "Archived" ? (
-                              /* Archived tab — allow undoing the archive */
                               <button
                                 onClick={() =>
                                   setRows((prev) =>
@@ -958,19 +1202,17 @@ function RequestsPage() {
                                     )
                                   )
                                 }
-                                className="group inline-flex items-center gap-1.5 rounded-full border border-amber-600/50 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-600 shadow-sm transition-all hover:bg-amber-500 hover:border-amber-500 hover:text-white hover:shadow-md"
+                                className="action-btn border-amber-500/40 bg-amber-500/10 text-amber-600 hover:bg-amber-500 hover:border-amber-500 hover:text-white dark:text-amber-400"
                               >
-                                <Archive className="h-3.5 w-3.5 transition-transform group-hover:rotate-12" />
+                                <Archive className="h-3 w-3" />
                                 Restore
                               </button>
                             ) : r.status === "Closed" ? (
-                              /* All tab — row is already archived, show a muted badge */
-                              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground">
-                                <Archive className="h-3.5 w-3.5" />
+                              <span className="action-btn border-border bg-muted/60 text-muted-foreground cursor-default">
+                                <Archive className="h-3 w-3" />
                                 Archived
                               </span>
                             ) : (
-                              /* Active / All tab — row is not archived yet */
                               <button
                                 onClick={() =>
                                   setRows((prev) =>
@@ -979,9 +1221,9 @@ function RequestsPage() {
                                     )
                                   )
                                 }
-                                className="group inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-100 shadow-sm transition-all hover:bg-slate-900 hover:border-slate-900 hover:shadow-md"
+                                className="action-btn border-slate-600/40 bg-slate-700/10 text-slate-600 hover:bg-slate-700 hover:border-slate-700 hover:text-white dark:text-slate-300 dark:border-slate-600/40 dark:bg-slate-700/20"
                               >
-                                <Archive className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-0.5" />
+                                <Archive className="h-3 w-3" />
                                 Archive
                               </button>
                             )}
@@ -992,15 +1234,21 @@ function RequestsPage() {
                   })}
                   {pageRows.length === 0 && (
                     <tr>
-                      <td colSpan={visibleColumns.length} className="px-4 py-16 text-center">
-                        <div className="mx-auto max-w-sm">
-                          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-muted-foreground">
-                            <Inbox className="h-5 w-5" />
+                      <td colSpan={visibleColumns.length + 1} className="px-4 py-20 text-center">
+                        <div className="mx-auto max-w-sm animate-fade-up">
+                          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary/80 text-muted-foreground mb-4">
+                            <Inbox className="h-6 w-6" />
                           </div>
-                          <div className="mt-3 font-medium">No requests match your filters</div>
-                          <div className="text-sm text-muted-foreground">
+                          <div className="font-semibold text-foreground">No requests match your filters</div>
+                          <div className="text-sm text-muted-foreground mt-1">
                             Try clearing a column filter or switching the tab.
                           </div>
+                          <button
+                            onClick={() => { setColFilters({}); setSearch(""); }}
+                            className="mt-4 text-xs font-medium text-accent hover:underline"
+                          >
+                            Clear all filters
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -1010,12 +1258,12 @@ function RequestsPage() {
             </div>
 
             {/* Pagination */}
-            <div className="flex flex-wrap items-center gap-3 px-4 md:px-6 py-3 border-t border-border bg-secondary/30">
+            <div className="flex flex-wrap items-center gap-2 px-4 md:px-5 py-3 border-t border-border bg-secondary/20">
               <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-8 w-8 rounded-lg"
                   disabled={currentPage === 1}
                   onClick={() => setPage(1)}
                 >
@@ -1024,7 +1272,7 @@ function RequestsPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-8 w-8 rounded-lg"
                   disabled={currentPage === 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                 >
@@ -1039,8 +1287,8 @@ function RequestsPage() {
                       size="sm"
                       onClick={() => setPage(n)}
                       className={cn(
-                        "h-8 w-8 p-0 rounded-full",
-                        n !== currentPage && "text-muted-foreground",
+                        "h-8 w-8 p-0 rounded-lg text-xs font-semibold",
+                        n !== currentPage && "text-muted-foreground hover:text-foreground",
                       )}
                     >
                       {n}
@@ -1049,7 +1297,7 @@ function RequestsPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-8 w-8 rounded-lg"
                   disabled={currentPage === totalPages}
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 >
@@ -1058,7 +1306,7 @@ function RequestsPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-8 w-8 rounded-lg"
                   disabled={currentPage === totalPages}
                   onClick={() => setPage(totalPages)}
                 >
@@ -1066,12 +1314,12 @@ function RequestsPage() {
                 </Button>
               </div>
 
-              <Separator orientation="vertical" className="h-6" />
+              <Separator orientation="vertical" className="h-5" />
 
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 Rows
                 <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
-                  <SelectTrigger className="h-8 w-16">
+                  <SelectTrigger className="h-8 w-16 rounded-lg text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1086,20 +1334,11 @@ function RequestsPage() {
 
               <div className="ml-auto text-xs text-muted-foreground">
                 Showing{" "}
-                <span className="font-medium text-foreground">
+                <span className="font-semibold text-foreground">
                   {filtered.length === 0 ? 0 : pageStart + 1}–{Math.min(pageStart + pageSize, filtered.length)}
                 </span>{" "}
-                of <span className="font-medium text-foreground">{filtered.length}</span> requests
+                of <span className="font-semibold text-foreground">{filtered.length}</span> requests
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setRefreshKey((k) => k + 1)}
-                aria-label="Refresh"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-              </Button>
             </div>
           </div>
         </main>
@@ -1193,23 +1432,37 @@ function AddRequestDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
-          <DialogTitle className="font-display text-xl">New request</DialogTitle>
-          <DialogDescription>
-            Assigned code <span className="font-mono text-foreground">#{nextCode}</span> — fields
-            marked <span className="text-destructive">*</span> are required.
-          </DialogDescription>
+      <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden border-border/60">
+        {/* Header with gradient accent */}
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border relative overflow-hidden">
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: "linear-gradient(135deg, oklch(0.60 0.20 258 / 0.04) 0%, transparent 60%)",
+            }}
+          />
+          <div className="flex items-center gap-3 relative">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+              <Plus className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <DialogTitle className="font-display text-xl font-bold">New Request</DialogTitle>
+              <DialogDescription className="text-xs mt-0.5">
+                Assigned code <span className="font-mono font-semibold text-foreground">#{nextCode}</span> — fields
+                marked <span className="text-destructive font-bold">*</span> are required.
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
         <div className="max-h-[70vh] overflow-y-auto px-6 py-5 space-y-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>Code</Label>
-              <Input value={nextCode} readOnly className="bg-secondary/60 font-mono" />
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Code</Label>
+              <Input value={nextCode} readOnly className="bg-secondary/60 font-mono text-sm" />
             </div>
             <div className="space-y-1.5">
-              <Label>
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                 Classification <span className="text-destructive">*</span>
               </Label>
               <Select
@@ -1229,7 +1482,7 @@ function AddRequestDialog({
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Application name</Label>
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Application</Label>
               <Select
                 value={values.appName}
                 onValueChange={(v) => setValues((s) => ({ ...s, appName: v }))}
@@ -1247,7 +1500,7 @@ function AddRequestDialog({
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                 Project <span className="text-destructive">*</span>
               </Label>
               <Select
@@ -1267,13 +1520,13 @@ function AddRequestDialog({
               </Select>
             </div>
             <div className="space-y-1.5 md:col-span-2">
-              <Label>Priority</Label>
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Priority <span className="text-muted-foreground font-normal normal-case">(1 = highest)</span></Label>
               <Input
                 type="number"
                 min={1}
                 max={10}
                 placeholder="1–10"
-                className="w-32"
+                className="w-36"
                 value={values.priority}
                 onChange={(e) =>
                   setValues((s) => ({
@@ -1286,10 +1539,10 @@ function AddRequestDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label>
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
               Request <span className="text-destructive">*</span>
             </Label>
-            <div className="rounded-lg border border-input bg-background overflow-hidden">
+            <div className="rounded-xl border border-input bg-background overflow-hidden focus-within:ring-2 focus-within:ring-ring/30 transition">
               <div className="flex flex-wrap items-center gap-0.5 border-b border-border bg-secondary/40 px-2 py-1.5">
                 <Select
                   defaultValue="p"
@@ -1356,8 +1609,8 @@ function AddRequestDialog({
                     exec("insertHTML", html);
                   }}
                 />
-                <span className="ml-auto text-[10px] font-medium text-muted-foreground pr-2">
-                  RTL & English supported
+                <span className="ml-auto text-[10px] font-medium text-muted-foreground pr-1">
+                  RTL & EN supported
                 </span>
               </div>
               <div
@@ -1365,23 +1618,25 @@ function AddRequestDialog({
                 contentEditable
                 suppressContentEditableWarning
                 dir="auto"
-                data-placeholder="Describe the request in detail — you can mix Arabic and English…"
-                className="min-h-32 max-h-64 overflow-y-auto px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/40 [&:empty:before]:content-[attr(data-placeholder)] [&:empty:before]:text-muted-foreground/60"
+                data-placeholder="Describe your request in detail — Arabic and English supported…"
+                className="min-h-32 max-h-64 overflow-y-auto px-3 py-2.5 text-sm outline-none [&:empty:before]:content-[attr(data-placeholder)] [&:empty:before]:text-muted-foreground/50"
               />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <Label>Attachments</Label>
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Attachments <span className="font-normal normal-case text-muted-foreground">(optional)</span></Label>
             <label
               htmlFor="file"
-              className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-secondary/30 px-4 py-6 text-center cursor-pointer hover:bg-secondary/60 hover:border-accent/50 transition-colors"
+              className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-secondary/30 px-4 py-8 text-center cursor-pointer hover:bg-secondary/60 hover:border-accent/40 transition-all duration-200"
             >
-              <UploadCloud className="h-6 w-6 text-muted-foreground" />
-              <div className="mt-2 text-sm font-medium">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 mb-3 animate-float">
+                <UploadCloud className="h-6 w-6 text-accent" />
+              </div>
+              <div className="text-sm font-semibold text-foreground">
                 {values.file ? values.file.name : "Drop a file or click to browse"}
               </div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-xs text-muted-foreground mt-1">
                 PNG, JPG, PDF or ZIP up to 20 MB
               </div>
               <input
@@ -1394,14 +1649,17 @@ function AddRequestDialog({
               />
             </label>
             {values.file && (
-              <div className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2 text-sm">
+              <div className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2.5 text-sm">
                 <span className="flex items-center gap-2 truncate">
-                  <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="truncate">{values.file.name}</span>
+                  <Paperclip className="h-3.5 w-3.5 text-accent" />
+                  <span className="truncate font-medium">{values.file.name}</span>
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    ({(values.file.size / 1024).toFixed(1)} KB)
+                  </span>
                 </span>
                 <button
                   onClick={() => setValues((s) => ({ ...s, file: null }))}
-                  className="text-muted-foreground hover:text-destructive"
+                  className="text-muted-foreground hover:text-destructive transition-colors ml-2"
                   aria-label="Remove"
                 >
                   <X className="h-4 w-4" />
@@ -1411,13 +1669,13 @@ function AddRequestDialog({
           </div>
         </div>
 
-        <DialogFooter className="px-6 py-4 border-t border-border bg-secondary/30">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="px-6 py-4 border-t border-border bg-secondary/20">
+          <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-xl">
             Cancel
           </Button>
-          <Button onClick={handleSave} className="gap-1.5">
+          <Button onClick={handleSave} className="gap-1.5 rounded-xl btn-glow">
             <Plus className="h-4 w-4" />
-            Save request
+            Save Request
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -1444,15 +1702,25 @@ function AttachmentsDialog({ row, onClose }: { row: RequestRow | null; onClose: 
 
   return (
     <Dialog open={!!row} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
-          <DialogTitle className="font-display text-lg flex items-center gap-2">
-            <Paperclip className="h-4 w-4 text-accent" />
-            Attachments
-          </DialogTitle>
-          <DialogDescription className="text-xs">
-            Request <span className="font-mono text-foreground">#{row?.code}</span>
-          </DialogDescription>
+      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden border-border/60">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border relative overflow-hidden">
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: "linear-gradient(135deg, oklch(0.60 0.20 258 / 0.04) 0%, transparent 60%)",
+            }}
+          />
+          <div className="flex items-center gap-3 relative">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10">
+              <Paperclip className="h-5 w-5 text-accent" />
+            </div>
+            <div>
+              <DialogTitle className="font-display text-lg font-bold">Attachments</DialogTitle>
+              <DialogDescription className="text-xs mt-0.5">
+                Request <span className="font-mono font-semibold text-foreground">#{row?.code}</span>
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
         <div className="px-6 py-5 space-y-4">
@@ -1463,37 +1731,42 @@ function AttachmentsDialog({ row, onClose }: { row: RequestRow | null; onClose: 
             onDrop={(e) => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}
             onClick={() => fileInputRef.current?.click()}
             className={cn(
-              "flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed py-10 cursor-pointer transition-all",
+              "flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed py-10 cursor-pointer transition-all duration-200",
               dragOver
                 ? "border-accent bg-accent/10 scale-[1.01]"
-                : "border-border bg-secondary/30 hover:border-accent/50 hover:bg-secondary/60",
+                : "border-border bg-secondary/30 hover:border-accent/40 hover:bg-secondary/60",
             )}
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/10">
-              <UploadCloud className="h-6 w-6 text-accent" />
+            <div className={cn(
+              "flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/10 transition-transform duration-200",
+              dragOver ? "scale-110 animate-float" : "",
+            )}>
+              <UploadCloud className="h-7 w-7 text-accent" />
             </div>
             <div className="text-center">
-              <p className="text-sm font-medium">Drop files here or <span className="text-accent underline underline-offset-2">browse</span></p>
+              <p className="text-sm font-semibold">
+                Drop files here or <span className="text-accent underline underline-offset-2">browse</span>
+              </p>
               <p className="text-xs text-muted-foreground mt-1">PNG, JPG, PDF, ZIP — up to 20 MB each</p>
             </div>
             <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => addFiles(e.target.files)} />
           </div>
 
           {/* File list */}
-          {files.length > 0 && (
+          {files.length > 0 ? (
             <ul className="space-y-2">
               {files.map((f) => (
-                <li key={f.name} className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5 text-sm">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/10">
+                <li key={f.name} className="flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2.5 text-sm animate-fade-up">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10">
                     <Paperclip className="h-4 w-4 text-accent" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="truncate font-medium text-foreground">{f.name}</p>
+                    <p className="truncate font-semibold text-foreground">{f.name}</p>
                     <p className="text-xs text-muted-foreground">{(f.size / 1024).toFixed(1)} KB</p>
                   </div>
                   <button
                     onClick={() => setFiles((prev) => prev.filter((p) => p.name !== f.name))}
-                    className="text-muted-foreground hover:text-destructive transition-colors"
+                    className="text-muted-foreground hover:text-destructive transition-colors rounded-lg p-1 hover:bg-destructive/10"
                     aria-label="Remove"
                   >
                     <X className="h-4 w-4" />
@@ -1501,16 +1774,14 @@ function AttachmentsDialog({ row, onClose }: { row: RequestRow | null; onClose: 
                 </li>
               ))}
             </ul>
-          )}
-
-          {files.length === 0 && (
+          ) : (
             <p className="text-center text-xs text-muted-foreground py-2">No attachments yet for this request.</p>
           )}
         </div>
 
-        <DialogFooter className="px-6 py-4 border-t border-border bg-secondary/30">
-          <Button variant="ghost" onClick={onClose}>Close</Button>
-          <Button onClick={onClose} className="gap-1.5" disabled={files.length === 0}>
+        <DialogFooter className="px-6 py-4 border-t border-border bg-secondary/20">
+          <Button variant="ghost" onClick={onClose} className="rounded-xl">Close</Button>
+          <Button onClick={onClose} className="gap-1.5 rounded-xl" disabled={files.length === 0}>
             <UploadCloud className="h-4 w-4" />
             Upload {files.length > 0 ? `(${files.length})` : ""}
           </Button>
@@ -1530,7 +1801,6 @@ function ReplyDialog({ row, onClose }: { row: RequestRow | null; onClose: () => 
   useEffect(() => { if (!row) { setComment(""); setReplyFile(null); } }, [row]);
 
   const handleSend = () => {
-    // In a real app, submit to API here
     setComment("");
     setReplyFile(null);
     onClose();
@@ -1538,15 +1808,25 @@ function ReplyDialog({ row, onClose }: { row: RequestRow | null; onClose: () => 
 
   return (
     <Dialog open={!!row} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-xl p-0 gap-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
-          <DialogTitle className="font-display text-lg flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
-            Reply to Request
-          </DialogTitle>
-          <DialogDescription className="text-xs">
-            Request <span className="font-mono text-foreground">#{row?.code}</span>
-          </DialogDescription>
+      <DialogContent className="max-w-xl p-0 gap-0 overflow-hidden border-border/60">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border relative overflow-hidden">
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: "linear-gradient(135deg, oklch(0.22 0.055 265 / 0.04) 0%, transparent 60%)",
+            }}
+          />
+          <div className="flex items-center gap-3 relative">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+            </div>
+            <div>
+              <DialogTitle className="font-display text-lg font-bold">Reply to Request</DialogTitle>
+              <DialogDescription className="text-xs mt-0.5">
+                Request <span className="font-mono font-semibold text-foreground">#{row?.code}</span>
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
         <div className="px-6 py-5 space-y-4">
@@ -1554,13 +1834,13 @@ function ReplyDialog({ row, onClose }: { row: RequestRow | null; onClose: () => 
           {row?.lastReply && row.lastReply !== "—" && (
             <div className="rounded-xl border border-border bg-secondary/40 p-4">
               <div className="flex items-start gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-accent/20 text-primary font-bold text-sm">
                   {row.createdBy?.charAt(0) ?? "?"}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1.5">
                     <span className="text-sm font-semibold text-foreground">{row.createdBy}</span>
-                    <span className="text-xs text-muted-foreground">{row.createdDate}</span>
+                    <span className="text-xs text-muted-foreground bg-secondary rounded-full px-2 py-0.5">{row.createdDate}</span>
                   </div>
                   <p dir="auto" className="text-sm text-foreground/80 leading-relaxed">{row.lastReply}</p>
                 </div>
@@ -1570,23 +1850,25 @@ function ReplyDialog({ row, onClose }: { row: RequestRow | null; onClose: () => 
 
           {/* Reply textarea */}
           <div className="space-y-1.5">
-            <Label className="text-sm font-medium">Your reply</Label>
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Your reply</Label>
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="Type your reply here…"
               rows={4}
               dir="auto"
-              className="w-full resize-none rounded-xl border border-input bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring/40 transition"
+              className="w-full resize-none rounded-xl border border-input bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/30 transition"
             />
           </div>
 
           {/* Attachment */}
           <div className="space-y-1.5">
-            <Label className="text-sm font-medium">Attachment <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Attachment <span className="text-muted-foreground font-normal normal-case">(optional)</span>
+            </Label>
             <div
               onClick={() => fileRef.current?.click()}
-              className="flex items-center gap-3 rounded-xl border border-dashed border-border bg-secondary/30 px-4 py-3 cursor-pointer hover:border-accent/50 hover:bg-secondary/60 transition-colors"
+              className="flex items-center gap-3 rounded-xl border border-dashed border-border bg-secondary/30 px-4 py-3 cursor-pointer hover:border-accent/40 hover:bg-secondary/60 transition-all duration-200"
             >
               <UploadCloud className="h-5 w-5 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">
@@ -1605,9 +1887,9 @@ function ReplyDialog({ row, onClose }: { row: RequestRow | null; onClose: () => 
           </div>
         </div>
 
-        <DialogFooter className="px-6 py-4 border-t border-border bg-secondary/30">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSend} disabled={!comment.trim()} className="gap-1.5">
+        <DialogFooter className="px-6 py-4 border-t border-border bg-secondary/20">
+          <Button variant="ghost" onClick={onClose} className="rounded-xl">Cancel</Button>
+          <Button onClick={handleSend} disabled={!comment.trim()} className="gap-1.5 rounded-xl">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
             Send Reply
           </Button>
@@ -1616,6 +1898,8 @@ function ReplyDialog({ row, onClose }: { row: RequestRow | null; onClose: () => 
     </Dialog>
   );
 }
+
+/* ---------------- Toolbar button ---------------- */
 
 function ToolbarBtn({
   icon: Icon,
@@ -1633,7 +1917,7 @@ function ToolbarBtn({
       aria-label={label}
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
-      className="rounded p-1.5 text-muted-foreground hover:bg-background hover:text-foreground"
+      className="rounded-lg p-1.5 text-muted-foreground hover:bg-background hover:text-foreground transition-colors"
     >
       <Icon className="h-3.5 w-3.5" />
     </button>
