@@ -1155,51 +1155,270 @@ function RequestsPage() {
     </div>
   );
 
-  const renderInvoices = () => (
+  const [invoiceTab, setInvoiceTab] = useState<"current" | "previous">("current");
+  const [invoicePage, setInvoicePage] = useState(1);
+  const invoicePageSize = 5;
+
+  const currentInvoices = [
+    { inv: "INV-2026-081", date: "2026-08-01", desc: "Paid CR - hashtag updater module", status: "Paid", amt: "$1,250.00" },
+    { inv: "INV-2026-079", date: "2026-07-15", desc: "CRM App customization request", status: "Paid", amt: "$850.00" },
+    { inv: "INV-2026-072", date: "2026-06-20", desc: "PM Application setup & support", status: "Pending", amt: "$1,500.00" },
+    { inv: "INV-2026-068", date: "2026-05-10", desc: "ERP+ Core module upgrade", status: "Pending", amt: "$2,100.00" },
+    { inv: "INV-2026-061", date: "2026-04-20", desc: "Attendance app integration", status: "Paid", amt: "$750.00" },
+    { inv: "INV-2026-055", date: "2026-03-15", desc: "Aqaraty portal setup", status: "Pending", amt: "$1,800.00" },
+  ];
+  const previousInvoices = [
+    { inv: "INV-2025-210", date: "2025-12-18", desc: "Q4 support & maintenance", status: "Paid", amt: "$3,000.00" },
+    { inv: "INV-2025-190", date: "2025-11-01", desc: "ERP module customization", status: "Paid", amt: "$1,650.00" },
+    { inv: "INV-2025-174", date: "2025-09-25", desc: "Onboarding training sessions", status: "Paid", amt: "$900.00" },
+    { inv: "INV-2025-155", date: "2025-08-10", desc: "CRM annual license fee", status: "Paid", amt: "$4,200.00" },
+    { inv: "INV-2025-132", date: "2025-06-30", desc: "PM portal setup", status: "Paid", amt: "$1,350.00" },
+  ];
+
+  const renderInvoices = () => {
+    const invoiceData = invoiceTab === "current" ? currentInvoices : previousInvoices;
+    const totalInvPages = Math.max(1, Math.ceil(invoiceData.length / invoicePageSize));
+    const invStart = (invoicePage - 1) * invoicePageSize;
+    const pagedInv = invoiceData.slice(invStart, invStart + invoicePageSize);
+
+    return (
+      <div className="space-y-6 animate-fade-up">
+        <div>
+          <h2 className="font-display text-2xl font-bold tracking-tight">Invoice History</h2>
+          <p className="text-sm text-muted-foreground">Review billing reports, charges, and paid receipts</p>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card shadow-[var(--shadow-card)] overflow-hidden">
+          {/* Tabs */}
+          <div className="flex border-b border-border bg-secondary/30">
+            {(["current", "previous"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => { setInvoiceTab(tab); setInvoicePage(1); }}
+                className={cn(
+                  "px-6 py-3.5 text-sm font-semibold capitalize transition-all duration-200 border-b-2 cursor-pointer",
+                  invoiceTab === tab
+                    ? "border-accent text-accent bg-card"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                )}
+              >
+                {tab === "current" ? "Current Invoices" : "Previous Invoices"}
+              </button>
+            ))}
+          </div>
+
+          {/* Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border table-header-gradient text-left text-xs uppercase tracking-wider text-muted-foreground/80">
+                  <th className="px-5 py-3.5 font-semibold">Invoice No</th>
+                  <th className="px-5 py-3.5 font-semibold">Billing Date</th>
+                  <th className="px-5 py-3.5 font-semibold">Description</th>
+                  <th className="px-5 py-3.5 font-semibold">Status</th>
+                  <th className="px-5 py-3.5 font-semibold text-right">Amount</th>
+                  <th className="px-5 py-3.5 font-semibold text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {pagedInv.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-5 py-16 text-center">
+                      <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                        <FileText className="h-10 w-10 opacity-30" />
+                        <p className="text-sm font-medium">There Is No Data To Display</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : pagedInv.map((i) => (
+                  <tr key={i.inv} className="hover:bg-secondary/20 transition-colors">
+                    <td className="px-5 py-4 font-mono font-semibold text-xs text-foreground">{i.inv}</td>
+                    <td className="px-5 py-4 text-xs text-muted-foreground">{i.date}</td>
+                    <td className="px-5 py-4 text-xs text-foreground/90 font-medium">{i.desc}</td>
+                    <td className="px-5 py-4">
+                      <span className={cn(
+                        "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold border",
+                        i.status === "Paid"
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60"
+                          : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60"
+                      )}>
+                        {i.status}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-xs font-semibold text-right text-foreground">{i.amt}</td>
+                    <td className="px-5 py-4 text-right">
+                      <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground">
+                        <Download className="h-3.5 w-3.5" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="flex flex-wrap items-center gap-3 px-5 py-3 border-t border-border bg-secondary/20">
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg cursor-pointer" disabled={invoicePage === 1} onClick={() => setInvoicePage(1)}>
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg cursor-pointer" disabled={invoicePage === 1} onClick={() => setInvoicePage((p) => Math.max(1, p - 1))}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-card border border-border text-xs font-bold text-foreground">
+                {invoicePage}
+              </span>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg cursor-pointer" disabled={invoicePage === totalInvPages} onClick={() => setInvoicePage((p) => Math.min(totalInvPages, p + 1))}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg cursor-pointer" disabled={invoicePage === totalInvPages} onClick={() => setInvoicePage(totalInvPages)}>
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            </div>
+            <span className="text-xs text-muted-foreground">
+              <span className="font-semibold text-foreground">{invoiceData.length}</span> items per page
+            </span>
+            <span className="ml-auto text-xs text-destructive font-semibold">
+              {invoiceData.length === 0 ? "There Is No Data To Display" : `Showing ${invStart + 1}–${Math.min(invStart + invoicePageSize, invoiceData.length)} of ${invoiceData.length}`}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const [projectName, setProjectName] = useState("");
+  const [projectView, setProjectView] = useState<"Day" | "Week" | "Month">("Week");
+  const [showProjectTasks, setShowProjectTasks] = useState(false);
+
+  const projectList = ["ERP PLUS Core", "CRM App Platform", "Attendance Mobile Gateway", "Aqaraty Portal"];
+
+  const projectTasks = [
+    { id: 1, title: "Homepage redesign", status: "In Progress", plannedHours: 16, employee: "Ahmed R.", quantity: 3, achievedQty: 2, numHours: 10, worked: "62.5%" },
+    { id: 2, title: "API integration layer", status: "Completed", plannedHours: 24, employee: "Sara M.", quantity: 5, achievedQty: 5, numHours: 24, worked: "100%" },
+    { id: 3, title: "DB schema migration", status: "Pending", plannedHours: 8, employee: "Karim T.", quantity: 2, achievedQty: 0, numHours: 0, worked: "0%" },
+    { id: 4, title: "Notification service", status: "In Progress", plannedHours: 12, employee: "Ahmed R.", quantity: 4, achievedQty: 1, numHours: 3, worked: "25%" },
+    { id: 5, title: "QA & testing cycle", status: "Pending", plannedHours: 20, employee: "Nadia O.", quantity: 6, achievedQty: 0, numHours: 0, worked: "0%" },
+  ];
+
+  const renderProjects = () => (
     <div className="space-y-6 animate-fade-up">
       <div>
-        <h2 className="font-display text-2xl font-bold tracking-tight">Invoice History</h2>
-        <p className="text-sm text-muted-foreground">Review billing reports, charges, and paid receipts</p>
+        <h2 className="font-display text-2xl font-bold tracking-tight">Project Tasks</h2>
+        <p className="text-sm text-muted-foreground">Track task progress, planned hours, and employee performance across projects</p>
       </div>
 
+      {/* Project selector + controls */}
       <div className="rounded-2xl border border-border bg-card shadow-[var(--shadow-card)] overflow-hidden">
+        <div className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-border bg-secondary/20">
+          <div className="flex items-center gap-2 flex-1 min-w-48">
+            <label className="text-xs font-semibold text-muted-foreground whitespace-nowrap">Project Name</label>
+            <select
+              value={projectName}
+              onChange={(e) => { setProjectName(e.target.value); setShowProjectTasks(false); }}
+              className="flex-1 h-9 rounded-xl border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 transition cursor-pointer"
+            >
+              <option value="">— Select a project —</option>
+              {projectList.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
+          <Button
+            className="btn-glow gap-1.5 rounded-xl h-9 px-5 cursor-pointer"
+            onClick={() => setShowProjectTasks(!!projectName)}
+            disabled={!projectName}
+          >
+            Show
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 px-5 py-3 border-b border-border">
+          <button
+            className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition cursor-pointer"
+            onClick={() => {
+              if (!showProjectTasks) return;
+              // export placeholder
+              alert("Exporting to PDF…");
+            }}
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export to PDF
+          </button>
+          <div className="ml-auto inline-flex rounded-xl bg-secondary/80 p-1 border border-border/40">
+            {(["Day", "Week", "Month"] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setProjectView(v)}
+                className={cn(
+                  "px-4 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer",
+                  projectView === v
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Task table */}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border table-header-gradient text-left text-xs uppercase tracking-wider text-muted-foreground/80">
-                <th className="px-5 py-3.5 font-semibold">Invoice No</th>
-                <th className="px-5 py-3.5 font-semibold">Billing Date</th>
-                <th className="px-5 py-3.5 font-semibold">Classification</th>
-                <th className="px-5 py-3.5 font-semibold">Status</th>
-                <th className="px-5 py-3.5 font-semibold text-right">Amount</th>
-                <th className="px-5 py-3.5 font-semibold text-right">Actions</th>
+                <th className="px-4 py-3 font-semibold">ID</th>
+                <th className="px-4 py-3 font-semibold">Title</th>
+                <th className="px-4 py-3 font-semibold">Status</th>
+                <th className="px-4 py-3 font-semibold">Planned Hours</th>
+                <th className="px-4 py-3 font-semibold">Employee Name</th>
+                <th className="px-4 py-3 font-semibold">Quantity</th>
+                <th className="px-4 py-3 font-semibold">Achieved Qty</th>
+                <th className="px-4 py-3 font-semibold">No. of Hours</th>
+                <th className="px-4 py-3 font-semibold">Worked</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
-              {[
-                { inv: "INV-2026-081", date: "2026-08-01", desc: "Paid CR - hashtag updater module", status: "Paid", amt: "$1,250.00" },
-                { inv: "INV-2026-079", date: "2026-07-15", desc: "CRM App customization request", status: "Paid", amt: "$850.00" },
-                { inv: "INV-2026-072", date: "2026-06-20", desc: "PM Application setup & support", status: "Pending", amt: "$1,500.00" },
-              ].map((i) => (
-                <tr key={i.inv} className="hover:bg-secondary/20 transition-colors">
-                  <td className="px-5 py-4 font-mono font-semibold text-xs text-foreground">{i.inv}</td>
-                  <td className="px-5 py-4 text-xs text-muted-foreground">{i.date}</td>
-                  <td className="px-5 py-4 text-xs text-foreground/90 font-medium">{i.desc}</td>
-                  <td className="px-5 py-4">
+              {!showProjectTasks ? (
+                <tr>
+                  <td colSpan={9} className="px-4 py-16 text-center">
+                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                      <FolderKanban className="h-10 w-10 opacity-30" />
+                      <p className="text-sm font-medium">Select a project and click Show to view tasks</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : projectTasks.map((t) => (
+                <tr key={t.id} className="hover:bg-secondary/20 transition-colors">
+                  <td className="px-4 py-3.5 font-mono text-xs text-muted-foreground">{t.id}</td>
+                  <td className="px-4 py-3.5 text-sm font-medium text-foreground">{t.title}</td>
+                  <td className="px-4 py-3.5">
                     <span className={cn(
-                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border",
-                      i.status === "Paid"
+                      "inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold border",
+                      t.status === "Completed"
                         ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60"
-                        : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60"
+                        : t.status === "In Progress"
+                        ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60"
+                        : "bg-secondary text-muted-foreground border-border"
                     )}>
-                      {i.status}
+                      {t.status}
                     </span>
                   </td>
-                  <td className="px-5 py-4 text-xs font-semibold text-right text-foreground">{i.amt}</td>
-                  <td className="px-5 py-4 text-right">
-                    <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground">
-                      <Download className="h-3.5 w-3.5" />
-                    </Button>
+                  <td className="px-4 py-3.5 text-xs text-foreground/80">{t.plannedHours}h</td>
+                  <td className="px-4 py-3.5 text-xs text-foreground/80">{t.employee}</td>
+                  <td className="px-4 py-3.5 text-xs text-foreground/80">{t.quantity}</td>
+                  <td className="px-4 py-3.5 text-xs text-foreground/80">{t.achievedQty}</td>
+                  <td className="px-4 py-3.5 text-xs text-foreground/80">{t.numHours}h</td>
+                  <td className="px-4 py-3.5">
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 w-16 bg-secondary rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-accent rounded-full"
+                          style={{ width: t.worked }}
+                        />
+                      </div>
+                      <span className="text-xs font-semibold text-foreground">{t.worked}</span>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -1210,58 +1429,28 @@ function RequestsPage() {
     </div>
   );
 
-  const renderProjects = () => (
-    <div className="space-y-6 animate-fade-up">
-      <div>
-        <h2 className="font-display text-2xl font-bold tracking-tight">Project Overview</h2>
-        <p className="text-sm text-muted-foreground">Connected systems, code pipelines, and completion states</p>
-      </div>
+  const [settingsPwCurrent, setSettingsPwCurrent] = useState("");
+  const [settingsPwNew, setSettingsPwNew] = useState("");
+  const [settingsPwConfirm, setSettingsPwConfirm] = useState("");
+  const [settingsPwMsg, setSettingsPwMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {[
-          { name: "ERP PLUS Core", status: "Active", progress: 85, tasks: 4, team: 6, updated: "2 hrs ago" },
-          { name: "CRM App Platform", status: "Active", progress: 60, tasks: 12, team: 4, updated: "1 day ago" },
-          { name: "Attendance Mobile Gateway", status: "Active", progress: 95, tasks: 1, team: 3, updated: "Just now" },
-          { name: "Aqaraty Portal", status: "Paused", progress: 30, tasks: 0, team: 2, updated: "3 days ago" },
-        ].map((p) => (
-          <div key={p.name} className="rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-card)] space-y-4 hover:shadow-md transition">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className={cn("h-2 w-2 rounded-full", p.status === "Active" ? "bg-emerald-500 animate-pulse" : "bg-slate-400")} />
-                <h3 className="font-display font-bold text-base text-foreground">{p.name}</h3>
-              </div>
-              <span className="text-[10px] font-bold text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{p.status}</span>
-            </div>
-
-            <div className="space-y-1">
-              <div className="flex items-center justify-between text-xs font-semibold">
-                <span className="text-muted-foreground">Milestone Progress</span>
-                <span className="text-foreground">{p.progress}%</span>
-              </div>
-              <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                <div className="h-full bg-accent rounded-full animate-pulse-ring" style={{ width: `${p.progress}%` }} />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 text-center pt-2 border-t border-border/50 text-[10px] text-muted-foreground">
-              <div>
-                <p className="font-semibold text-foreground text-xs">{p.tasks}</p>
-                <p>Pending CRs</p>
-              </div>
-              <div>
-                <p className="font-semibold text-foreground text-xs">{p.team} dev</p>
-                <p>Team Size</p>
-              </div>
-              <div>
-                <p className="font-semibold text-foreground text-xs">{p.updated}</p>
-                <p>Last Sync</p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  const handleChangePassword = () => {
+    if (!settingsPwCurrent || !settingsPwNew || !settingsPwConfirm) {
+      setSettingsPwMsg({ type: "error", text: "Please fill in all password fields." });
+      return;
+    }
+    if (settingsPwNew !== settingsPwConfirm) {
+      setSettingsPwMsg({ type: "error", text: "New password and confirm password do not match." });
+      return;
+    }
+    if (settingsPwNew.length < 8) {
+      setSettingsPwMsg({ type: "error", text: "Password must be at least 8 characters." });
+      return;
+    }
+    setSettingsPwMsg({ type: "success", text: "Password changed successfully." });
+    setSettingsPwCurrent(""); setSettingsPwNew(""); setSettingsPwConfirm("");
+    setTimeout(() => setSettingsPwMsg(null), 3500);
+  };
 
   const renderSettings = () => (
     <div className="space-y-6 animate-fade-up max-w-xl">
@@ -1270,6 +1459,7 @@ function RequestsPage() {
         <p className="text-sm text-muted-foreground">Configure notifications, security credentials, and preferences</p>
       </div>
 
+      {/* Preferences */}
       <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] space-y-6">
         <div className="space-y-4">
           <h3 className="font-semibold text-sm text-foreground uppercase tracking-wider text-muted-foreground/80">Preferences</h3>
@@ -1322,6 +1512,70 @@ function RequestsPage() {
 
         <Button className="w-full rounded-xl btn-glow gap-1.5 h-10 text-sm cursor-pointer">
           Save Settings
+        </Button>
+      </div>
+
+      {/* Change Password */}
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] space-y-5">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+            <Zap className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-sm text-foreground">Change Password</h3>
+            <p className="text-[10px] text-muted-foreground">Update your portal login credentials</p>
+          </div>
+        </div>
+
+        {settingsPwMsg && (
+          <div className={cn(
+            "rounded-xl px-4 py-2.5 text-xs font-semibold border",
+            settingsPwMsg.type === "success"
+              ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60"
+              : "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800/60"
+          )}>
+            {settingsPwMsg.text}
+          </div>
+        )}
+
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label className="text-[10px] font-semibold text-muted-foreground uppercase">Current Password</Label>
+            <Input
+              type="password"
+              placeholder="Enter current password"
+              value={settingsPwCurrent}
+              onChange={(e) => setSettingsPwCurrent(e.target.value)}
+              className="rounded-xl"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px] font-semibold text-muted-foreground uppercase">New Password</Label>
+            <Input
+              type="password"
+              placeholder="At least 8 characters"
+              value={settingsPwNew}
+              onChange={(e) => setSettingsPwNew(e.target.value)}
+              className="rounded-xl"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px] font-semibold text-muted-foreground uppercase">Confirm New Password</Label>
+            <Input
+              type="password"
+              placeholder="Repeat new password"
+              value={settingsPwConfirm}
+              onChange={(e) => setSettingsPwConfirm(e.target.value)}
+              className="rounded-xl"
+            />
+          </div>
+        </div>
+
+        <Button
+          className="w-full rounded-xl btn-glow gap-1.5 h-10 text-sm cursor-pointer"
+          onClick={handleChangePassword}
+        >
+          Update Password
         </Button>
       </div>
     </div>
@@ -1603,9 +1857,12 @@ function RequestsPage() {
                     {visibleColumns.map((c) => (
                       <td key={c.key} className={cn("px-4 py-3.5 align-top", c.width)}>
                         {c.key === "code" ? (
-                          <span className="font-mono font-semibold text-foreground bg-secondary/60 rounded-md px-1.5 py-0.5 text-xs">
-                            #{r.code}
-                          </span>
+                          <div className="flex flex-col gap-1">
+                            <span className="font-mono font-semibold text-foreground bg-secondary/60 rounded-md px-1.5 py-0.5 text-xs inline-block">
+                              #{r.code}
+                            </span>
+                            <StatusBadge status={r.status} />
+                          </div>
                         ) : c.key === "status" ? (
                           <StatusBadge status={r.status} />
                         ) : c.key === "classification" ? (
@@ -1646,16 +1903,36 @@ function RequestsPage() {
                             {r.lastReply}
                           </p>
                         ) : c.key === "priority" ? (
-                          <span className={cn(
-                            "inline-flex items-center justify-center h-6 w-6 rounded-full text-xs font-bold",
-                            Number(r.priority) <= 3
-                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-                              : Number(r.priority) <= 6
-                              ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
-                              : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
-                          )}>
-                            {r.priority || "—"}
-                          </span>
+                          <div className="flex flex-col items-start gap-0.5">
+                            <span className={cn(
+                              "inline-flex items-center justify-center h-7 w-7 rounded-full text-xs font-bold border-2",
+                              !r.priority
+                                ? "bg-secondary text-muted-foreground border-border"
+                                : Number(r.priority) <= 3
+                                ? "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-700"
+                                : Number(r.priority) <= 5
+                                ? "bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700"
+                                : Number(r.priority) <= 7
+                                ? "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/40 dark:text-orange-300 dark:border-orange-700"
+                                : "bg-red-100 text-red-700 border-red-300 dark:bg-red-900/40 dark:text-red-300 dark:border-red-700",
+                            )}>
+                              {r.priority || "—"}
+                            </span>
+                            <span className={cn(
+                              "text-[9px] font-semibold uppercase tracking-wide",
+                              !r.priority
+                                ? "text-muted-foreground"
+                                : Number(r.priority) <= 3
+                                ? "text-emerald-600 dark:text-emerald-400"
+                                : Number(r.priority) <= 5
+                                ? "text-amber-600 dark:text-amber-400"
+                                : Number(r.priority) <= 7
+                                ? "text-orange-600 dark:text-orange-400"
+                                : "text-red-600 dark:text-red-400"
+                            )}>
+                              {!r.priority ? "—" : Number(r.priority) <= 3 ? "Low" : Number(r.priority) <= 5 ? "Medium" : Number(r.priority) <= 7 ? "High" : "Critical"}
+                            </span>
+                          </div>
                         ) : (
                           <span className="text-foreground/80 text-sm">
                             {String(r[c.key] ?? "—") || "—"}
