@@ -514,3 +514,56 @@
 .dark ::-webkit-scrollbar-thumb:hover {
   background: oklch(0.40 0.05 258);
 }
+
+/* ─── Timeline Feed ──────────────────────────────────────────────── */
+.timeline-item {
+  position: relative;
+  padding-left: 24px;
+  padding-bottom: 20px;
+}
+.timeline-item:last-child {
+  padding-bottom: 0;
+}
+.timeline-dot {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  border: 2px solid var(--color-card);
+  box-shadow: 0 0 0 1px var(--color-border);
+  z-index: 2;
+}
+.timeline-line {
+  position: absolute;
+  left: 4.5px;
+  top: 10px;
+  bottom: 0;
+  width: 1px;
+  background: var(--color-border);
+  z-index: 1;
+}
+.timeline-item:last-child .timeline-line {
+  display: none;
+}
+
+/* ─── Health indicator pulse ──────────────────────────────────────── */
+.health-pulse {
+  position: relative;
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: oklch(0.60 0.16 155);
+}
+.health-pulse::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid oklch(0.60 0.16 155 / 0.4);
+  animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+

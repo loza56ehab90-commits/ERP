@@ -2,6 +2,19 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip as ChartTooltip,
+  BarChart,
+  Bar,
+  Cell,
+  PieChart,
+  Pie,
+} from "recharts";
+import {
   Bell,
   LogOut,
   Search,
@@ -380,12 +393,22 @@ function StatusBadge({ status }: { status: Status }) {
 const NAV = [
   { label: "Dashboard", icon: LayoutDashboard, href: "#" },
   { label: "Invoices", icon: FileText, href: "#" },
-  { label: "Requests", icon: Inbox, href: "#", active: true },
+  { label: "Requests", icon: Inbox, href: "#" },
   { label: "Project", icon: FolderKanban, href: "#" },
   { label: "Settings", icon: Settings, href: "#" },
 ];
 
-function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
+function Sidebar({
+  open,
+  onClose,
+  currentTab,
+  onTabChange,
+}: {
+  open: boolean;
+  onClose: () => void;
+  currentTab: string;
+  onTabChange: (tab: string) => void;
+}) {
   return (
     <>
       {/* Mobile/tablet backdrop */}
@@ -450,35 +473,40 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
 
         <nav className="px-3 py-1 flex-1">
           <ul className="space-y-0.5">
-            {NAV.map((item, i) => (
-              <li key={item.label} className={`animate-slide-in-left delay-${[100, 150, 200, 250, 300][i] ?? 300}`}>
-                <a
-                  href={item.href}
-                  onClick={() => onClose()}
-                  className={cn(
-                    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 group",
-                    item.active
-                      ? "bg-gradient-to-r from-sidebar-primary/20 to-sidebar-primary/10 text-sidebar-foreground border border-sidebar-primary/25 nav-glow"
-                      : "text-sidebar-foreground/65 hover:bg-sidebar-accent/80 hover:text-sidebar-foreground hover:translate-x-1",
-                  )}
-                >
-                  <span
+            {NAV.map((item, i) => {
+              const active = item.label === currentTab;
+              return (
+                <li key={item.label} className={`animate-slide-in-left delay-${[100, 150, 200, 250, 300][i] ?? 300}`}>
+                  <button
+                    onClick={() => {
+                      onTabChange(item.label);
+                      onClose();
+                    }}
                     className={cn(
-                      "flex h-7 w-7 items-center justify-center rounded-lg transition-all duration-200",
-                      item.active
-                        ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
-                        : "text-sidebar-foreground/50 group-hover:bg-sidebar-accent group-hover:text-sidebar-foreground/80",
+                      "w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 group text-left cursor-pointer",
+                      active
+                        ? "bg-sidebar-primary/20 text-sidebar-foreground border border-sidebar-primary/25 nav-glow"
+                        : "text-sidebar-foreground/65 hover:bg-sidebar-accent/80 hover:text-sidebar-foreground hover:translate-x-1",
                     )}
                   >
-                    <item.icon className="h-3.5 w-3.5" />
-                  </span>
-                  {item.label}
-                  {item.active && (
-                    <span className="ml-auto flex h-1.5 w-1.5 rounded-full bg-sidebar-primary" />
-                  )}
-                </a>
-              </li>
-            ))}
+                    <span
+                      className={cn(
+                        "flex h-7 w-7 items-center justify-center rounded-lg transition-all duration-200",
+                        active
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
+                          : "text-sidebar-foreground/50 group-hover:bg-sidebar-accent group-hover:text-sidebar-foreground/80",
+                      )}
+                    >
+                      <item.icon className="h-3.5 w-3.5" />
+                    </span>
+                    {item.label}
+                    {active && (
+                      <span className="ml-auto flex h-1.5 w-1.5 rounded-full bg-sidebar-primary" />
+                    )}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </nav>
 
@@ -719,6 +747,10 @@ function ColumnVisibilityMenu({
 type FilterKey = "All" | "Active" | "Archived";
 
 function RequestsPage() {
+  const [currentTab, setCurrentTab] = useState("Dashboard");
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   const [rows, setRows] = useState<RequestRow[]>(INITIAL_ROWS);
   const [filter, setFilter] = useState<FilterKey>("Active");
   const [openAdd, setOpenAdd] = useState(false);
@@ -829,9 +861,984 @@ function RequestsPage() {
 
   const setColSort = (key: keyof RequestRow, dir: "asc" | "desc") => setSort({ key, dir });
 
+  // ---------------- Views ----------------
+
+  const classificationData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    rows.forEach((r) => {
+      counts[r.classification] = (counts[r.classification] || 0) + 1;
+    });
+    return Object.entries(counts).map(([name, value]) => ({
+      name,
+      value,
+    }));
+  }, [rows]);
+
+  const trendData = useMemo(() => [
+    { name: "Aug 02", count: 2 },
+    { name: "Aug 03", count: 3 },
+    { name: "Aug 04", count: 4 },
+    { name: "Aug 05", count: 2 },
+    { name: "Aug 06", count: 6 },
+    { name: "Aug 07", count: 5 },
+    { name: "Aug 08", count: rows.length },
+  ], [rows.length]);
+
+  const renderDashboard = () => (
+    <div className="space-y-6">
+      {/* Welcome Banner */}
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-r from-primary to-accent/80 p-6 md:p-8 text-white shadow-xl animate-fade-up">
+        <div className="absolute top-0 right-0 h-40 w-40 pointer-events-none opacity-20 bg-white rounded-full filter blur-xl transform translate-x-10 -translate-y-10" />
+        <div className="absolute bottom-0 right-10 h-32 w-32 pointer-events-none opacity-10 bg-white rounded-full filter blur-lg transform translate-y-10" />
+        
+        <div className="relative z-10 max-w-lg space-y-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold backdrop-blur-md">
+            <Sparkles className="h-3 w-3 text-amber-300" />
+            Portal Status: Active
+          </span>
+          <h2 className="text-2xl md:text-3xl font-display font-bold leading-tight">
+            Welcome back, Ahmed R.! 👋
+          </h2>
+          <p className="text-sm text-white/85 leading-relaxed">
+            All system integrations are running operational. You have <span className="font-semibold text-amber-300">{activeCount} pending requests</span> awaiting team updates or confirmation.
+          </p>
+        </div>
+      </div>
+
+      {/* Stats Bar */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <button
+          onClick={() => { setCurrentTab("Requests"); setFilter("All"); }}
+          className="text-left w-full focus:outline-none cursor-pointer"
+        >
+          <StatTile
+            label="Total Requests"
+            value={String(totalCount)}
+            hint="in your workspace"
+            icon={Inbox}
+            tone="primary"
+            progress={(totalCount / 20) * 100}
+          />
+        </button>
+        <button
+          onClick={() => { setCurrentTab("Requests"); setFilter("Active"); }}
+          className="text-left w-full focus:outline-none cursor-pointer"
+        >
+          <StatTile
+            label="Active Requests"
+            value={String(activeCount)}
+            hint="team working on them"
+            icon={Clock}
+            tone="warning"
+            progress={(activeCount / totalCount) * 100}
+          />
+        </button>
+        <button
+          onClick={() => { setCurrentTab("Requests"); setFilter("All"); }}
+          className="text-left w-full focus:outline-none cursor-pointer"
+        >
+          <StatTile
+            label="Resolved"
+            value={String(resolvedCount)}
+            hint="awaiting confirmation"
+            icon={Sparkles}
+            tone="info"
+            progress={(resolvedCount / totalCount) * 100}
+          />
+        </button>
+        <button
+          onClick={() => { setCurrentTab("Requests"); setFilter("Archived"); }}
+          className="text-left w-full focus:outline-none cursor-pointer"
+        >
+          <StatTile
+            label="Archived"
+            value={String(archivedCount)}
+            hint="closed & done"
+            icon={CheckCircle2}
+            tone="success"
+            progress={(archivedCount / totalCount) * 100}
+          />
+        </button>
+      </div>
+
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Side: Analytics Charts (2/3 width) */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Requests Trend Chart */}
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-card)] space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-display font-bold text-base text-foreground">Request Activity Trend</h3>
+                <p className="text-xs text-muted-foreground">Volume of requests submitted over the last 7 days</p>
+              </div>
+              <span className="text-xs font-semibold text-accent bg-accent/10 rounded-full px-2.5 py-1">
+                Realtime Sync
+              </span>
+            </div>
+
+            <div className="h-64 w-full">
+              {mounted ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorTickets" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="oklch(0.60 0.20 258)" stopOpacity={0.25} />
+                        <stop offset="95%" stopColor="oklch(0.60 0.20 258)" stopOpacity={0.01} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis
+                      dataKey="name"
+                      stroke="#888888"
+                      fontSize={11}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      stroke="#888888"
+                      fontSize={11}
+                      tickLine={false}
+                      axisLine={false}
+                      allowDecimals={false}
+                    />
+                    <ChartTooltip
+                      contentStyle={{
+                        background: "oklch(var(--card))",
+                        borderColor: "oklch(var(--border))",
+                        borderRadius: "12px",
+                        fontSize: "12px",
+                        color: "oklch(var(--foreground))",
+                        boxShadow: "0 4px 12px oklch(0 0 0 / 0.08)",
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="count"
+                      stroke="oklch(0.60 0.20 258)"
+                      strokeWidth={2.5}
+                      fillOpacity={1}
+                      fill="url(#colorTickets)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+                  Loading charts...
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Classification Distribution list */}
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-card)] space-y-4">
+            <div>
+              <h3 className="font-display font-bold text-base text-foreground">Classification Distribution</h3>
+              <p className="text-xs text-muted-foreground">Breakdown of support tickets by type</p>
+            </div>
+            
+            <div className="space-y-3.5">
+              {classificationData.map((item, idx) => {
+                const percentage = Math.round((item.value / totalCount) * 100) || 0;
+                const colors = [
+                  "bg-blue-500 dark:bg-blue-600",
+                  "bg-purple-500 dark:bg-purple-600",
+                  "bg-emerald-500 dark:bg-emerald-600",
+                  "bg-amber-500 dark:bg-amber-600",
+                  "bg-rose-500 dark:bg-rose-600",
+                ];
+                const barColor = colors[idx % colors.length];
+                
+                return (
+                  <div key={item.name} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs font-medium">
+                      <span className="text-foreground">{item.name}</span>
+                      <span className="text-muted-foreground">{item.value} ({percentage}%)</span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
+                      <div className={cn("h-full rounded-full transition-all duration-500", barColor)} style={{ width: `${percentage}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side Widgets (1/3 width) */}
+        <div className="space-y-6">
+          {/* Quick Actions */}
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-card)] space-y-4">
+            <h3 className="font-display font-bold text-base text-foreground">Quick Actions</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                className="rounded-xl flex flex-col items-center justify-center p-4 h-auto hover:bg-secondary/60 hover:text-accent gap-2 border-border/80 text-xs font-semibold transition cursor-pointer"
+                onClick={() => setOpenAdd(true)}
+              >
+                <Plus className="h-5 w-5 text-accent" />
+                Add Request
+              </Button>
+              <Button
+                variant="outline"
+                className="rounded-xl flex flex-col items-center justify-center p-4 h-auto hover:bg-secondary/60 hover:text-accent gap-2 border-border/80 text-xs font-semibold transition cursor-pointer"
+                onClick={handleExport}
+              >
+                <Download className="h-5 w-5 text-accent" />
+                Export XLS
+              </Button>
+            </div>
+          </div>
+
+          {/* Recent Timeline activity */}
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-card)] space-y-4">
+            <div>
+              <h3 className="font-display font-bold text-base text-foreground">Recent Activity Feed</h3>
+              <p className="text-xs text-muted-foreground">Latest replies from ERP+ engineers</p>
+            </div>
+
+            <div className="relative">
+              {rows.slice(0, 3).map((r) => (
+                <div key={r.code} className="timeline-item">
+                  <div className="timeline-dot" />
+                  <div className="timeline-line" />
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-foreground">Ticket #{r.code}</span>
+                      <span className="text-muted-foreground text-[10px]">{r.createdDate}</span>
+                    </div>
+                    <p className="text-xs text-foreground/80 line-clamp-2 leading-relaxed" dir="auto">
+                      {r.lastReply !== "—" ? r.lastReply : r.request}
+                    </p>
+                    <div className="flex items-center gap-2 pt-0.5">
+                      <span className="inline-flex items-center rounded-full bg-secondary/80 px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground border border-border/60">
+                        {r.status}
+                      </span>
+                      <button
+                        onClick={() => setReplyRow(r)}
+                        className="text-[10px] text-accent font-semibold hover:underline cursor-pointer"
+                      >
+                        Reply &rarr;
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Health indicator checklist */}
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-card)] space-y-4">
+            <h3 className="font-display font-bold text-base text-foreground">Live App Status</h3>
+            <div className="space-y-3">
+              {[
+                { name: "CRM App Server", desc: "Syncing data", status: "online" },
+                { name: "PM Application", desc: "Operational", status: "online" },
+                { name: "Attendance Api Gateway", desc: "Operational", status: "online" },
+              ].map((app) => (
+                <div key={app.name} className="flex items-center justify-between p-2 rounded-xl bg-secondary/35 border border-border/40">
+                  <div className="flex items-center gap-2.5">
+                    <span className="health-pulse shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold text-foreground leading-tight">{app.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{app.desc}</p>
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-md">
+                    Live
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderInvoices = () => (
+    <div className="space-y-6 animate-fade-up">
+      <div>
+        <h2 className="font-display text-2xl font-bold tracking-tight">Invoice History</h2>
+        <p className="text-sm text-muted-foreground">Review billing reports, charges, and paid receipts</p>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card shadow-[var(--shadow-card)] overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border table-header-gradient text-left text-xs uppercase tracking-wider text-muted-foreground/80">
+                <th className="px-5 py-3.5 font-semibold">Invoice No</th>
+                <th className="px-5 py-3.5 font-semibold">Billing Date</th>
+                <th className="px-5 py-3.5 font-semibold">Classification</th>
+                <th className="px-5 py-3.5 font-semibold">Status</th>
+                <th className="px-5 py-3.5 font-semibold text-right">Amount</th>
+                <th className="px-5 py-3.5 font-semibold text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/60">
+              {[
+                { inv: "INV-2026-081", date: "2026-08-01", desc: "Paid CR - hashtag updater module", status: "Paid", amt: "$1,250.00" },
+                { inv: "INV-2026-079", date: "2026-07-15", desc: "CRM App customization request", status: "Paid", amt: "$850.00" },
+                { inv: "INV-2026-072", date: "2026-06-20", desc: "PM Application setup & support", status: "Pending", amt: "$1,500.00" },
+              ].map((i) => (
+                <tr key={i.inv} className="hover:bg-secondary/20 transition-colors">
+                  <td className="px-5 py-4 font-mono font-semibold text-xs text-foreground">{i.inv}</td>
+                  <td className="px-5 py-4 text-xs text-muted-foreground">{i.date}</td>
+                  <td className="px-5 py-4 text-xs text-foreground/90 font-medium">{i.desc}</td>
+                  <td className="px-5 py-4">
+                    <span className={cn(
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border",
+                      i.status === "Paid"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60"
+                        : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60"
+                    )}>
+                      {i.status}
+                    </span>
+                  </td>
+                  <td className="px-5 py-4 text-xs font-semibold text-right text-foreground">{i.amt}</td>
+                  <td className="px-5 py-4 text-right">
+                    <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground">
+                      <Download className="h-3.5 w-3.5" />
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderProjects = () => (
+    <div className="space-y-6 animate-fade-up">
+      <div>
+        <h2 className="font-display text-2xl font-bold tracking-tight">Project Overview</h2>
+        <p className="text-sm text-muted-foreground">Connected systems, code pipelines, and completion states</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {[
+          { name: "ERP PLUS Core", status: "Active", progress: 85, tasks: 4, team: 6, updated: "2 hrs ago" },
+          { name: "CRM App Platform", status: "Active", progress: 60, tasks: 12, team: 4, updated: "1 day ago" },
+          { name: "Attendance Mobile Gateway", status: "Active", progress: 95, tasks: 1, team: 3, updated: "Just now" },
+          { name: "Aqaraty Portal", status: "Paused", progress: 30, tasks: 0, team: 2, updated: "3 days ago" },
+        ].map((p) => (
+          <div key={p.name} className="rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-card)] space-y-4 hover:shadow-md transition">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className={cn("h-2 w-2 rounded-full", p.status === "Active" ? "bg-emerald-500 animate-pulse" : "bg-slate-400")} />
+                <h3 className="font-display font-bold text-base text-foreground">{p.name}</h3>
+              </div>
+              <span className="text-[10px] font-bold text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{p.status}</span>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-xs font-semibold">
+                <span className="text-muted-foreground">Milestone Progress</span>
+                <span className="text-foreground">{p.progress}%</span>
+              </div>
+              <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                <div className="h-full bg-accent rounded-full animate-pulse-ring" style={{ width: `${p.progress}%` }} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 text-center pt-2 border-t border-border/50 text-[10px] text-muted-foreground">
+              <div>
+                <p className="font-semibold text-foreground text-xs">{p.tasks}</p>
+                <p>Pending CRs</p>
+              </div>
+              <div>
+                <p className="font-semibold text-foreground text-xs">{p.team} dev</p>
+                <p>Team Size</p>
+              </div>
+              <div>
+                <p className="font-semibold text-foreground text-xs">{p.updated}</p>
+                <p>Last Sync</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderSettings = () => (
+    <div className="space-y-6 animate-fade-up max-w-xl">
+      <div>
+        <h2 className="font-display text-2xl font-bold tracking-tight">Portal Configuration</h2>
+        <p className="text-sm text-muted-foreground">Configure notifications, security credentials, and preferences</p>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] space-y-6">
+        <div className="space-y-4">
+          <h3 className="font-semibold text-sm text-foreground uppercase tracking-wider text-muted-foreground/80">Preferences</h3>
+          
+          <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/35 border border-border/50">
+            <div>
+              <p className="text-xs font-semibold text-foreground">Email notifications</p>
+              <p className="text-[10px] text-muted-foreground">Receive support alerts on reply updates</p>
+            </div>
+            <input type="checkbox" defaultChecked className="h-4 w-4 rounded border-border text-accent focus:ring-ring cursor-pointer" />
+          </div>
+
+          <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/35 border border-border/50">
+            <div>
+              <p className="text-xs font-semibold text-foreground">SMS Alerts</p>
+              <p className="text-[10px] text-muted-foreground">Receive texts for priority 1 issues</p>
+            </div>
+            <input type="checkbox" className="h-4 w-4 rounded border-border text-accent focus:ring-ring cursor-pointer" />
+          </div>
+
+          <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/35 border border-border/50">
+            <div>
+              <p className="text-xs font-semibold text-foreground">Dark mode preference</p>
+              <p className="text-[10px] text-muted-foreground">Enables dark system themes</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDark((d) => !d)}
+              className="h-8 rounded-lg text-xs cursor-pointer"
+            >
+              {dark ? "Switch Light" : "Switch Dark"}
+            </Button>
+          </div>
+        </div>
+
+        <div className="space-y-4 pt-4 border-t border-border/60">
+          <h3 className="font-semibold text-sm text-foreground uppercase tracking-wider text-muted-foreground/80">Account Details</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <Label className="text-[10px] font-semibold text-muted-foreground uppercase">English name</Label>
+              <Input defaultValue="Ahmed R." readOnly className="bg-secondary/60 rounded-xl" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[10px] font-semibold text-muted-foreground uppercase">Email address</Label>
+              <Input defaultValue="ahmed@client.com" readOnly className="bg-secondary/60 rounded-xl" />
+            </div>
+          </div>
+        </div>
+
+        <Button className="w-full rounded-xl btn-glow gap-1.5 h-10 text-sm cursor-pointer">
+          Save Settings
+        </Button>
+      </div>
+    </div>
+  );
+
+  const renderRequests = () => (
+    <>
+      {/* Page header */}
+      <div className="animate-fade-up flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            <span className="flex h-4 w-4 items-center justify-center rounded bg-primary/10">
+              <Inbox className="h-2.5 w-2.5 text-primary" />
+            </span>
+            Customer Portal
+          </div>
+          <h1 className="mt-1.5 font-display text-3xl md:text-4xl font-bold tracking-tight">
+            Requests
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground max-w-md">
+            Submit clarifications, improvements, and issues — and track every reply in real time.
+          </p>
+        </div>
+        <a
+          href="https://www.youtube.com"
+          target="_blank"
+          rel="noreferrer"
+          id="watch-how-to-btn"
+          className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-medium text-foreground hover:bg-secondary hover:scale-105 active:scale-95 transition-all duration-150 shadow-sm"
+        >
+          <PlayCircle className="h-4 w-4 text-destructive" />
+          Watch how-to
+        </a>
+      </div>
+
+      {/* KPI tiles */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="animate-fade-up delay-100">
+          <StatTile
+            label="Total Requests"
+            value={String(totalCount)}
+            hint="in your workspace"
+            icon={Inbox}
+            tone="primary"
+            progress={(totalCount / 20) * 100}
+          />
+        </div>
+        <div className="animate-fade-up delay-200">
+          <StatTile
+            label="Active"
+            value={String(activeCount)}
+            hint="team working on it"
+            icon={Clock}
+            tone="warning"
+            progress={(activeCount / totalCount) * 100}
+          />
+        </div>
+        <div className="animate-fade-up delay-300">
+          <StatTile
+            label="Resolved"
+            value={String(resolvedCount)}
+            hint="awaiting confirmation"
+            icon={Sparkles}
+            tone="info"
+            progress={(resolvedCount / totalCount) * 100}
+          />
+        </div>
+        <div className="animate-fade-up delay-400">
+          <StatTile
+            label="Archived"
+            value={String(archivedCount)}
+            hint="closed & done"
+            icon={CheckCircle2}
+            tone="success"
+            progress={(archivedCount / totalCount) * 100}
+          />
+        </div>
+      </div>
+
+      {/* Table card */}
+      <div className="animate-fade-up delay-200 rounded-2xl border border-border bg-card shadow-[var(--shadow-elegant)] overflow-hidden">
+        {/* Action bar */}
+        <div className="flex flex-wrap items-center gap-2.5 px-4 md:px-5 py-3.5 border-b border-border bg-card">
+          <Button
+            id="add-request-btn"
+            className="btn-glow gap-1.5 rounded-full text-sm h-9 px-4 cursor-pointer"
+            onClick={() => setOpenAdd(true)}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add request
+          </Button>
+
+          <ColumnVisibilityMenu visibility={visibility} setVisibility={setVisibility}>
+            <Button variant="outline" size="sm" className="gap-1.5 rounded-full h-9 border-border/60 hover:bg-secondary cursor-pointer">
+              <Eye className="h-3.5 w-3.5" />
+              Columns
+            </Button>
+          </ColumnVisibilityMenu>
+
+          {/* Segmented filter */}
+          <div className="inline-flex rounded-full bg-secondary/80 p-1 ml-1 border border-border/40">
+            {(["All", "Active", "Archived"] as FilterKey[]).map((f) => {
+              const count = f === "All" ? totalCount : f === "Active" ? activeCount : archivedCount;
+              return (
+                <button
+                  key={f}
+                  id={`filter-${f.toLowerCase()}-btn`}
+                  onClick={() => setFilter(f)}
+                  className={cn(
+                    "relative px-4 py-1.5 text-xs font-semibold rounded-full transition-all duration-200 cursor-pointer",
+                    filter === f
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {f}
+                  <span
+                    className={cn(
+                      "ml-1.5 inline-flex items-center justify-center rounded-full px-1.5 text-[10px] font-bold",
+                      filter === f
+                        ? "bg-primary/10 text-primary"
+                        : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="ml-auto flex items-center gap-2">
+            <Button
+              id="export-btn"
+              variant="outline"
+              size="sm"
+              className="gap-1.5 rounded-full h-9 border-border/60 hover:bg-secondary cursor-pointer"
+              onClick={handleExport}
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn("h-9 w-9 rounded-xl cursor-pointer", refreshing && "animate-spin-slow")}
+              onClick={handleRefresh}
+              aria-label="Refresh"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm" style={{ tableLayout: "auto" }}>
+            <thead>
+              <tr className="border-b border-border table-header-gradient text-left text-xs uppercase tracking-wider text-muted-foreground/80">
+                {visibleColumns.map((c) => (
+                  <th key={c.key} className={cn("px-4 py-3 font-semibold", c.width)}>
+                    <div className="flex items-center gap-1.5">
+                      {c.label}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            aria-label={`${c.label} column menu`}
+                            className="rounded-md p-0.5 hover:bg-background/80 transition-colors cursor-pointer"
+                          >
+                            <ChevronDown className="h-3 w-3 opacity-60" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-48">
+                          <DropdownMenuItem onClick={() => setColSort(c.key, "asc")} className="cursor-pointer">
+                            <ArrowUp className="h-3.5 w-3.5" />
+                            Sort ascending
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setColSort(c.key, "desc")} className="cursor-pointer">
+                            <ArrowDown className="h-3.5 w-3.5" />
+                            Sort descending
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>
+                              <Eye className="h-3.5 w-3.5" />
+                              Display data
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent className="w-56 max-h-[60vh] overflow-y-auto">
+                              {COLUMNS.map((col) => (
+                                <DropdownMenuCheckboxItem
+                                  key={col.key}
+                                  checked={visibility[col.key]}
+                                  onCheckedChange={(v) =>
+                                    setVisibility({ ...visibility, [col.key]: !!v })
+                                  }
+                                  onSelect={(e) => e.preventDefault()}
+                                  className="cursor-pointer"
+                                >
+                                  {col.label}
+                                </DropdownMenuCheckboxItem>
+                              ))}
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>
+                              <FilterIcon className="h-3.5 w-3.5" />
+                              Filter
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent className="w-64 p-2">
+                              <Input
+                                autoFocus
+                                value={colFilters[c.key as string] ?? ""}
+                                onChange={(e) =>
+                                  setColFilters((s) => ({
+                                    ...s,
+                                    [c.key as string]: e.target.value,
+                                  }))
+                                }
+                                placeholder={`Filter ${c.label.toLowerCase()}…`}
+                                className="h-8 text-xs"
+                              />
+                              {colFilters[c.key as string] && (
+                                <button
+                                  onClick={() =>
+                                    setColFilters((s) => ({ ...s, [c.key as string]: "" }))
+                                  }
+                                  className="mt-2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                                >
+                                  Clear filter
+                                </button>
+                              )}
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      {sort?.key === c.key && (
+                        <span className="text-accent">
+                          {sort.dir === "asc" ? (
+                            <ArrowUp className="h-3 w-3" />
+                          ) : (
+                            <ArrowDown className="h-3 w-3" />
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                ))}
+                <th className="px-4 py-3 font-semibold text-right">Actions</th>
+              </tr>
+              {/* Column filter row */}
+              <tr className="border-b border-border bg-secondary/30">
+                {visibleColumns.map((c) => (
+                  <th key={c.key} className="px-3 py-2">
+                    <div className="relative">
+                      <FilterIcon className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground/60" />
+                      <input
+                        value={colFilters[c.key as string] ?? ""}
+                        onChange={(e) =>
+                          setColFilters((s) => ({ ...s, [c.key as string]: e.target.value }))
+                        }
+                        placeholder="Filter…"
+                        className="h-7 w-full rounded-lg border border-border bg-background pl-7 pr-2 text-xs placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/30 transition"
+                      />
+                    </div>
+                  </th>
+                ))}
+                <th className="px-3 py-2" />
+              </tr>
+            </thead>
+            <tbody>
+              {pageRows.map((r, rowIdx) => {
+                const isExpanded = expanded[r.code];
+                return (
+                  <tr
+                    key={r.code}
+                    style={{ animationDelay: `${rowIdx * 45}ms` }}
+                    className="animate-row-enter border-b border-border/60 last:border-0 hover:bg-secondary/30 transition-colors table-row-hover"
+                  >
+                    {visibleColumns.map((c) => (
+                      <td key={c.key} className={cn("px-4 py-3.5 align-top", c.width)}>
+                        {c.key === "code" ? (
+                          <span className="font-mono font-semibold text-foreground bg-secondary/60 rounded-md px-1.5 py-0.5 text-xs">
+                            #{r.code}
+                          </span>
+                        ) : c.key === "status" ? (
+                          <StatusBadge status={r.status} />
+                        ) : c.key === "classification" ? (
+                          <span className="inline-flex items-center gap-1.5 text-foreground/90 text-xs font-medium">
+                            {r.classification === "Issue" ? (
+                              <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" />
+                            ) : r.classification === "Improvement Request" || r.classification === "CR" ? (
+                              <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
+                            ) : (
+                              <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            )}
+                            {r.classification}
+                          </span>
+                        ) : c.key === "request" ? (
+                          <div className="max-w-md">
+                            <p
+                              dir="auto"
+                              className={cn(
+                                "text-foreground/85 leading-relaxed text-sm",
+                                !isExpanded && "line-clamp-2",
+                              )}
+                            >
+                              {r.request}
+                            </p>
+                            {r.request.length > 60 && (
+                              <button
+                                onClick={() =>
+                                  setExpanded((s) => ({ ...s, [r.code]: !s[r.code] }))
+                                }
+                                className="mt-1 text-xs font-semibold text-accent hover:underline cursor-pointer"
+                              >
+                                {isExpanded ? "Show less" : "Read more"}
+                              </button>
+                            )}
+                          </div>
+                        ) : c.key === "lastReply" ? (
+                          <p dir="auto" className="text-muted-foreground text-xs line-clamp-3 max-w-xs leading-relaxed">
+                            {r.lastReply}
+                          </p>
+                        ) : c.key === "priority" ? (
+                          <span className={cn(
+                            "inline-flex items-center justify-center h-6 w-6 rounded-full text-xs font-bold",
+                            Number(r.priority) <= 3
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                              : Number(r.priority) <= 6
+                              ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                              : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+                          )}>
+                            {r.priority || "—"}
+                          </span>
+                        ) : (
+                          <span className="text-foreground/80 text-sm">
+                            {String(r[c.key] ?? "—") || "—"}
+                          </span>
+                        )}
+                      </td>
+                    ))}
+                    {/* Actions cell */}
+                    <td className="px-4 py-3.5 align-top">
+                      <div className="flex items-center gap-1.5 flex-nowrap">
+                        <button
+                          onClick={() => setAttachmentsRow(r)}
+                          className="action-btn border-border/60 bg-secondary/60 text-muted-foreground hover:border-accent/50 hover:bg-accent/10 hover:text-accent"
+                        >
+                          <Paperclip className="h-3 w-3" />
+                          Files
+                        </button>
+                        <button
+                          onClick={() => setReplyRow(r)}
+                          className="action-btn border-primary/25 bg-primary/5 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+                          Reply
+                        </button>
+                        {filter === "Archived" ? (
+                          <button
+                            onClick={() =>
+                              setRows((prev) =>
+                                prev.map((row) =>
+                                  row.code === r.code ? { ...row, status: "New" } : row
+                                )
+                              )
+                            }
+                            className="action-btn border-amber-500/40 bg-amber-500/10 text-amber-600 hover:bg-amber-500 hover:border-amber-500 hover:text-white dark:text-amber-400"
+                          >
+                            <Archive className="h-3 w-3" />
+                            Restore
+                          </button>
+                        ) : r.status === "Closed" ? (
+                          <span className="action-btn border-border bg-muted/60 text-muted-foreground cursor-default">
+                            <Archive className="h-3 w-3" />
+                            Archived
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() =>
+                              setRows((prev) =>
+                                prev.map((row) =>
+                                  row.code === r.code ? { ...row, status: "Closed" } : row
+                                )
+                              )
+                            }
+                            className="action-btn border-slate-600/40 bg-slate-700/10 text-slate-600 hover:bg-slate-700 hover:border-slate-700 hover:text-white dark:text-slate-300 dark:border-slate-600/40 dark:bg-slate-700/20"
+                          >
+                            <Archive className="h-3 w-3" />
+                            Archive
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {pageRows.length === 0 && (
+                <tr>
+                  <td colSpan={visibleColumns.length + 1} className="px-4 py-20 text-center">
+                    <div className="mx-auto max-w-sm animate-fade-up">
+                      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary/80 text-muted-foreground mb-4">
+                        <Inbox className="h-6 w-6" />
+                      </div>
+                      <div className="font-semibold text-foreground">No requests match your filters</div>
+                      <div className="text-sm text-muted-foreground mt-1">
+                        Try clearing a column filter or switching the tab.
+                      </div>
+                      <button
+                        onClick={() => { setColFilters({}); setSearch(""); }}
+                        className="mt-4 text-xs font-medium text-accent hover:underline cursor-pointer"
+                      >
+                        Clear all filters
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        <div className="flex flex-wrap items-center gap-2 px-4 md:px-5 py-3 border-t border-border bg-secondary/20">
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-lg cursor-pointer"
+              disabled={currentPage === 1}
+              onClick={() => setPage(1)}
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-lg cursor-pointer"
+              disabled={currentPage === 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .slice(Math.max(0, currentPage - 3), Math.max(0, currentPage - 3) + 5)
+              .map((n) => (
+                <Button
+                  key={n}
+                  variant={n === currentPage ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setPage(n)}
+                  className={cn(
+                    "h-8 w-8 p-0 rounded-lg text-xs font-semibold cursor-pointer",
+                    n !== currentPage && "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {n}
+                </Button>
+              ))}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-lg cursor-pointer"
+              disabled={currentPage === totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-lg cursor-pointer"
+              disabled={currentPage === totalPages}
+              onClick={() => setPage(totalPages)}
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <Separator orientation="vertical" className="h-5" />
+
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            Rows
+            <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+              <SelectTrigger className="h-8 w-16 rounded-lg text-xs cursor-pointer">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {["5", "10", "25", "50"].map((n) => (
+                  <SelectItem key={n} value={n}>
+                    {n}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="ml-auto text-xs text-muted-foreground">
+            Showing{" "}
+            <span className="font-semibold text-foreground">
+              {filtered.length === 0 ? 0 : pageStart + 1}–{Math.min(pageStart + pageSize, filtered.length)}
+            </span>{" "}
+            of <span className="font-semibold text-foreground">{filtered.length}</span> requests
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <div className="flex min-h-screen bg-muted/40">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        currentTab={currentTab}
+        onTabChange={setCurrentTab}
+      />
 
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar
@@ -843,504 +1850,11 @@ function RequestsPage() {
         />
 
         <main className="flex-1 px-4 md:px-6 py-6 md:py-8 space-y-6">
-          {/* Page header */}
-          <div className="animate-fade-up flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                <span className="flex h-4 w-4 items-center justify-center rounded bg-primary/10">
-                  <Inbox className="h-2.5 w-2.5 text-primary" />
-                </span>
-                Customer Portal
-              </div>
-              <h1 className="mt-1.5 font-display text-3xl md:text-4xl font-bold tracking-tight">
-                Requests
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground max-w-md">
-                Submit clarifications, improvements, and issues — and track every reply in real time.
-              </p>
-            </div>
-            <a
-              href="https://www.youtube.com"
-              target="_blank"
-              rel="noreferrer"
-              id="watch-how-to-btn"
-              className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-medium text-foreground hover:bg-secondary hover:scale-105 active:scale-95 transition-all duration-150 shadow-sm"
-            >
-              <PlayCircle className="h-4 w-4 text-destructive" />
-              Watch how-to
-            </a>
-          </div>
-
-          {/* KPI tiles */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="animate-fade-up delay-100">
-              <StatTile
-                label="Total Requests"
-                value={String(totalCount)}
-                hint="in your workspace"
-                icon={Inbox}
-                tone="primary"
-                progress={(totalCount / 20) * 100}
-              />
-            </div>
-            <div className="animate-fade-up delay-200">
-              <StatTile
-                label="Active"
-                value={String(activeCount)}
-                hint="team working on it"
-                icon={Clock}
-                tone="warning"
-                progress={(activeCount / totalCount) * 100}
-              />
-            </div>
-            <div className="animate-fade-up delay-300">
-              <StatTile
-                label="Resolved"
-                value={String(resolvedCount)}
-                hint="awaiting confirmation"
-                icon={Sparkles}
-                tone="info"
-                progress={(resolvedCount / totalCount) * 100}
-              />
-            </div>
-            <div className="animate-fade-up delay-400">
-              <StatTile
-                label="Archived"
-                value={String(archivedCount)}
-                hint="closed & done"
-                icon={CheckCircle2}
-                tone="success"
-                progress={(archivedCount / totalCount) * 100}
-              />
-            </div>
-          </div>
-
-          {/* Table card */}
-          <div className="animate-fade-up delay-200 rounded-2xl border border-border bg-card shadow-[var(--shadow-elegant)] overflow-hidden">
-            {/* Action bar */}
-            <div className="flex flex-wrap items-center gap-2.5 px-4 md:px-5 py-3.5 border-b border-border bg-card">
-              <Button
-                id="add-request-btn"
-                className="btn-glow gap-1.5 rounded-full text-sm h-9 px-4"
-                onClick={() => setOpenAdd(true)}
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Add request
-              </Button>
-
-              <ColumnVisibilityMenu visibility={visibility} setVisibility={setVisibility}>
-                <Button variant="outline" size="sm" className="gap-1.5 rounded-full h-9 border-border/60 hover:bg-secondary">
-                  <Eye className="h-3.5 w-3.5" />
-                  Columns
-                </Button>
-              </ColumnVisibilityMenu>
-
-              {/* Segmented filter */}
-              <div className="inline-flex rounded-full bg-secondary/80 p-1 ml-1 border border-border/40">
-                {(["All", "Active", "Archived"] as FilterKey[]).map((f) => {
-                  const count = f === "All" ? totalCount : f === "Active" ? activeCount : archivedCount;
-                  return (
-                    <button
-                      key={f}
-                      id={`filter-${f.toLowerCase()}-btn`}
-                      onClick={() => setFilter(f)}
-                      className={cn(
-                        "relative px-4 py-1.5 text-xs font-semibold rounded-full transition-all duration-200",
-                        filter === f
-                          ? "bg-card text-foreground shadow-sm"
-                          : "text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      {f}
-                      <span
-                        className={cn(
-                          "ml-1.5 inline-flex items-center justify-center rounded-full px-1.5 text-[10px] font-bold",
-                          filter === f
-                            ? "bg-primary/10 text-primary"
-                            : "bg-muted text-muted-foreground",
-                        )}
-                      >
-                        {count}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="ml-auto flex items-center gap-2">
-                <Button
-                  id="export-btn"
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 rounded-full h-9 border-border/60 hover:bg-secondary"
-                  onClick={handleExport}
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  Export
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn("h-9 w-9 rounded-xl", refreshing && "animate-spin-slow")}
-                  onClick={handleRefresh}
-                  aria-label="Refresh"
-                >
-                  <RefreshCw className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm" style={{ tableLayout: "auto" }}>
-                <thead>
-                  <tr className="border-b border-border table-header-gradient text-left text-xs uppercase tracking-wider text-muted-foreground/80">
-                    {visibleColumns.map((c) => (
-                      <th key={c.key} className={cn("px-4 py-3 font-semibold", c.width)}>
-                        <div className="flex items-center gap-1.5">
-                          {c.label}
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button
-                                aria-label={`${c.label} column menu`}
-                                className="rounded-md p-0.5 hover:bg-background/80 transition-colors"
-                              >
-                                <ChevronDown className="h-3 w-3 opacity-60" />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="w-48">
-                              <DropdownMenuItem onClick={() => setColSort(c.key, "asc")}>
-                                <ArrowUp className="h-3.5 w-3.5" />
-                                Sort ascending
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setColSort(c.key, "desc")}>
-                                <ArrowDown className="h-3.5 w-3.5" />
-                                Sort descending
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuSub>
-                                <DropdownMenuSubTrigger>
-                                  <Eye className="h-3.5 w-3.5" />
-                                  Display data
-                                </DropdownMenuSubTrigger>
-                                <DropdownMenuSubContent className="w-56 max-h-[60vh] overflow-y-auto">
-                                  {COLUMNS.map((col) => (
-                                    <DropdownMenuCheckboxItem
-                                      key={col.key}
-                                      checked={visibility[col.key]}
-                                      onCheckedChange={(v) =>
-                                        setVisibility({ ...visibility, [col.key]: !!v })
-                                      }
-                                      onSelect={(e) => e.preventDefault()}
-                                    >
-                                      {col.label}
-                                    </DropdownMenuCheckboxItem>
-                                  ))}
-                                </DropdownMenuSubContent>
-                              </DropdownMenuSub>
-                              <DropdownMenuSub>
-                                <DropdownMenuSubTrigger>
-                                  <FilterIcon className="h-3.5 w-3.5" />
-                                  Filter
-                                </DropdownMenuSubTrigger>
-                                <DropdownMenuSubContent className="w-64 p-2">
-                                  <Input
-                                    autoFocus
-                                    value={colFilters[c.key as string] ?? ""}
-                                    onChange={(e) =>
-                                      setColFilters((s) => ({
-                                        ...s,
-                                        [c.key as string]: e.target.value,
-                                      }))
-                                    }
-                                    placeholder={`Filter ${c.label.toLowerCase()}…`}
-                                    className="h-8 text-xs"
-                                  />
-                                  {colFilters[c.key as string] && (
-                                    <button
-                                      onClick={() =>
-                                        setColFilters((s) => ({ ...s, [c.key as string]: "" }))
-                                      }
-                                      className="mt-2 text-xs text-muted-foreground hover:text-foreground"
-                                    >
-                                      Clear filter
-                                    </button>
-                                  )}
-                                </DropdownMenuSubContent>
-                              </DropdownMenuSub>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                          {sort?.key === c.key && (
-                            <span className="text-accent">
-                              {sort.dir === "asc" ? (
-                                <ArrowUp className="h-3 w-3" />
-                              ) : (
-                                <ArrowDown className="h-3 w-3" />
-                              )}
-                            </span>
-                          )}
-                        </div>
-                      </th>
-                    ))}
-                    <th className="px-4 py-3 font-semibold text-right">Actions</th>
-                  </tr>
-                  {/* Column filter row */}
-                  <tr className="border-b border-border bg-secondary/30">
-                    {visibleColumns.map((c) => (
-                      <th key={c.key} className="px-3 py-2">
-                        <div className="relative">
-                          <FilterIcon className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground/60" />
-                          <input
-                            value={colFilters[c.key as string] ?? ""}
-                            onChange={(e) =>
-                              setColFilters((s) => ({ ...s, [c.key as string]: e.target.value }))
-                            }
-                            placeholder="Filter…"
-                            className="h-7 w-full rounded-lg border border-border bg-background pl-7 pr-2 text-xs placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/30 transition"
-                          />
-                        </div>
-                      </th>
-                    ))}
-                    <th className="px-3 py-2" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {pageRows.map((r, rowIdx) => {
-                    const isExpanded = expanded[r.code];
-                    return (
-                      <tr
-                        key={r.code}
-                        style={{ animationDelay: `${rowIdx * 45}ms` }}
-                        className="animate-row-enter border-b border-border/60 last:border-0 hover:bg-secondary/30 transition-colors table-row-hover"
-                      >
-                        {visibleColumns.map((c) => (
-                          <td key={c.key} className={cn("px-4 py-3.5 align-top", c.width)}>
-                            {c.key === "code" ? (
-                              <span className="font-mono font-semibold text-foreground bg-secondary/60 rounded-md px-1.5 py-0.5 text-xs">
-                                #{r.code}
-                              </span>
-                            ) : c.key === "status" ? (
-                              <StatusBadge status={r.status} />
-                            ) : c.key === "classification" ? (
-                              <span className="inline-flex items-center gap-1.5 text-foreground/90 text-xs font-medium">
-                                {r.classification === "Issue" ? (
-                                  <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" />
-                                ) : r.classification === "Improvement Request" || r.classification === "CR" ? (
-                                  <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
-                                ) : (
-                                  <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                )}
-                                {r.classification}
-                              </span>
-                            ) : c.key === "request" ? (
-                              <div className="max-w-md">
-                                <p
-                                  dir="auto"
-                                  className={cn(
-                                    "text-foreground/85 leading-relaxed text-sm",
-                                    !isExpanded && "line-clamp-2",
-                                  )}
-                                >
-                                  {r.request}
-                                </p>
-                                {r.request.length > 60 && (
-                                  <button
-                                    onClick={() =>
-                                      setExpanded((s) => ({ ...s, [r.code]: !s[r.code] }))
-                                    }
-                                    className="mt-1 text-xs font-semibold text-accent hover:underline"
-                                  >
-                                    {isExpanded ? "Show less" : "Read more"}
-                                  </button>
-                                )}
-                              </div>
-                            ) : c.key === "lastReply" ? (
-                              <p dir="auto" className="text-muted-foreground text-xs line-clamp-3 max-w-xs leading-relaxed">
-                                {r.lastReply}
-                              </p>
-                            ) : c.key === "priority" ? (
-                              <span className={cn(
-                                "inline-flex items-center justify-center h-6 w-6 rounded-full text-xs font-bold",
-                                Number(r.priority) <= 3
-                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-                                  : Number(r.priority) <= 6
-                                  ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
-                                  : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
-                              )}>
-                                {r.priority || "—"}
-                              </span>
-                            ) : (
-                              <span className="text-foreground/80 text-sm">
-                                {String(r[c.key] ?? "—") || "—"}
-                              </span>
-                            )}
-                          </td>
-                        ))}
-                        {/* Actions cell */}
-                        <td className="px-4 py-3.5 align-top">
-                          <div className="flex items-center gap-1.5 flex-nowrap">
-                            <button
-                              onClick={() => setAttachmentsRow(r)}
-                              className="action-btn border-border/60 bg-secondary/60 text-muted-foreground hover:border-accent/50 hover:bg-accent/10 hover:text-accent"
-                            >
-                              <Paperclip className="h-3 w-3" />
-                              Files
-                            </button>
-                            <button
-                              onClick={() => setReplyRow(r)}
-                              className="action-btn border-primary/25 bg-primary/5 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
-                              Reply
-                            </button>
-                            {filter === "Archived" ? (
-                              <button
-                                onClick={() =>
-                                  setRows((prev) =>
-                                    prev.map((row) =>
-                                      row.code === r.code ? { ...row, status: "New" } : row
-                                    )
-                                  )
-                                }
-                                className="action-btn border-amber-500/40 bg-amber-500/10 text-amber-600 hover:bg-amber-500 hover:border-amber-500 hover:text-white dark:text-amber-400"
-                              >
-                                <Archive className="h-3 w-3" />
-                                Restore
-                              </button>
-                            ) : r.status === "Closed" ? (
-                              <span className="action-btn border-border bg-muted/60 text-muted-foreground cursor-default">
-                                <Archive className="h-3 w-3" />
-                                Archived
-                              </span>
-                            ) : (
-                              <button
-                                onClick={() =>
-                                  setRows((prev) =>
-                                    prev.map((row) =>
-                                      row.code === r.code ? { ...row, status: "Closed" } : row
-                                    )
-                                  )
-                                }
-                                className="action-btn border-slate-600/40 bg-slate-700/10 text-slate-600 hover:bg-slate-700 hover:border-slate-700 hover:text-white dark:text-slate-300 dark:border-slate-600/40 dark:bg-slate-700/20"
-                              >
-                                <Archive className="h-3 w-3" />
-                                Archive
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {pageRows.length === 0 && (
-                    <tr>
-                      <td colSpan={visibleColumns.length + 1} className="px-4 py-20 text-center">
-                        <div className="mx-auto max-w-sm animate-fade-up">
-                          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary/80 text-muted-foreground mb-4">
-                            <Inbox className="h-6 w-6" />
-                          </div>
-                          <div className="font-semibold text-foreground">No requests match your filters</div>
-                          <div className="text-sm text-muted-foreground mt-1">
-                            Try clearing a column filter or switching the tab.
-                          </div>
-                          <button
-                            onClick={() => { setColFilters({}); setSearch(""); }}
-                            className="mt-4 text-xs font-medium text-accent hover:underline"
-                          >
-                            Clear all filters
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination */}
-            <div className="flex flex-wrap items-center gap-2 px-4 md:px-5 py-3 border-t border-border bg-secondary/20">
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-lg"
-                  disabled={currentPage === 1}
-                  onClick={() => setPage(1)}
-                >
-                  <ChevronsLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-lg"
-                  disabled={currentPage === 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .slice(Math.max(0, currentPage - 3), Math.max(0, currentPage - 3) + 5)
-                  .map((n) => (
-                    <Button
-                      key={n}
-                      variant={n === currentPage ? "default" : "ghost"}
-                      size="sm"
-                      onClick={() => setPage(n)}
-                      className={cn(
-                        "h-8 w-8 p-0 rounded-lg text-xs font-semibold",
-                        n !== currentPage && "text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      {n}
-                    </Button>
-                  ))}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-lg"
-                  disabled={currentPage === totalPages}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-lg"
-                  disabled={currentPage === totalPages}
-                  onClick={() => setPage(totalPages)}
-                >
-                  <ChevronsRight className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <Separator orientation="vertical" className="h-5" />
-
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                Rows
-                <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
-                  <SelectTrigger className="h-8 w-16 rounded-lg text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {["5", "10", "25", "50"].map((n) => (
-                      <SelectItem key={n} value={n}>
-                        {n}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="ml-auto text-xs text-muted-foreground">
-                Showing{" "}
-                <span className="font-semibold text-foreground">
-                  {filtered.length === 0 ? 0 : pageStart + 1}–{Math.min(pageStart + pageSize, filtered.length)}
-                </span>{" "}
-                of <span className="font-semibold text-foreground">{filtered.length}</span> requests
-              </div>
-            </div>
-          </div>
+          {currentTab === "Dashboard" && renderDashboard()}
+          {currentTab === "Requests" && renderRequests()}
+          {currentTab === "Invoices" && renderInvoices()}
+          {currentTab === "Project" && renderProjects()}
+          {currentTab === "Settings" && renderSettings()}
         </main>
       </div>
 
