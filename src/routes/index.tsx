@@ -312,7 +312,6 @@ const COLUMNS: ColumnDef[] = [
   { key: "email", label: "Email", defaultVisible: false, width: "w-48" },
   { key: "customerCode", label: "Customer Code", defaultVisible: false, width: "w-32" },
   { key: "clientEmail", label: "Client Email", defaultVisible: false, width: "w-48" },
-  { key: "status", label: "Status", defaultVisible: true, width: "w-40" },
   { key: "classification", label: "Classification", defaultVisible: true, width: "w-48" },
   { key: "project", label: "Project", defaultVisible: true, width: "w-40" },
   { key: "client", label: "Client", defaultVisible: false, width: "w-32" },
@@ -1918,19 +1917,8 @@ function RequestsPage() {
                           <span className="font-mono font-semibold text-foreground bg-secondary/60 rounded-md px-1.5 py-0.5 text-xs inline-block">
                             #{r.code}
                           </span>
-                        ) : c.key === "status" ? (
-                          <PriorityStatusBadge row={r} />
                         ) : c.key === "classification" ? (
-                          <span className="inline-flex items-center gap-1.5 text-foreground/90 text-xs font-medium">
-                            {r.classification === "Issue" ? (
-                              <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" />
-                            ) : r.classification === "Improvement Request" || r.classification === "CR" ? (
-                              <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
-                            ) : (
-                              <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                            )}
-                            {r.classification}
-                          </span>
+                          <PriorityStatusBadge row={r} />
                         ) : c.key === "request" ? (
                           <div className="max-w-md">
                             <p
