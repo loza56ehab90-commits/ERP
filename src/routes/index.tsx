@@ -388,6 +388,60 @@ function StatusBadge({ status }: { status: Status }) {
   );
 }
 
+/* ---------------- Priority helpers ---------------- */
+
+function priorityLabel(priority: number | ""): {
+  level: "Critical" | "High" | "Medium" | "Low" | null;
+  cls: string;
+  dotCls: string;
+} {
+  if (priority === "" || priority === undefined || priority === null) {
+    return { level: null, cls: "", dotCls: "" };
+  }
+  const p = Number(priority);
+  if (p <= 2) return {
+    level: "Critical",
+    cls: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800/60",
+    dotCls: "bg-red-500",
+  };
+  if (p <= 4) return {
+    level: "High",
+    cls: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800/60",
+    dotCls: "bg-orange-500",
+  };
+  if (p <= 6) return {
+    level: "Medium",
+    cls: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60",
+    dotCls: "bg-amber-500",
+  };
+  return {
+    level: "Low",
+    cls: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60",
+    dotCls: "bg-emerald-500",
+  };
+}
+
+function PriorityStatusBadge({ row }: { row: { priority: number | ""; status: Status } }) {
+  const { level, cls, dotCls } = priorityLabel(row.priority);
+
+  if (!level) {
+    // No priority set — fall back to workflow status
+    return <StatusBadge status={row.status} />;
+  }
+
+  return (
+    <span className={cn(
+      "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium",
+      cls,
+    )}>
+      <span className={cn("status-dot", dotCls)} />
+      <span className="font-bold tabular-nums">{row.priority}</span>
+      <span className="opacity-70">·</span>
+      {level}
+    </span>
+  );
+}
+
 /* ---------------- Sidebar ---------------- */
 
 const NAV = [
@@ -839,11 +893,15 @@ function RequestsPage() {
 
   const handleAddRequest = (r: Omit<RequestRow, "code" | "createdDate" | "createdBy" | "status">) => {
     const nextCode = Math.max(...rows.map((x) => x.code)) + 1;
+    // Derive initial workflow status from priority: high priority → In Progress, else New
+    const p = Number(r.priority);
+    const derivedStatus: Status =
+      r.priority !== "" && p <= 3 ? "In Progress" : "New";
     setRows((prev) => [
       {
         ...r,
         code: nextCode,
-        status: "New",
+        status: derivedStatus,
         createdDate: new Date().toISOString().slice(0, 10),
         createdBy: "Ahmed R.",
       },
@@ -1857,14 +1915,11 @@ function RequestsPage() {
                     {visibleColumns.map((c) => (
                       <td key={c.key} className={cn("px-4 py-3.5 align-top", c.width)}>
                         {c.key === "code" ? (
-                          <div className="flex flex-col gap-1">
-                            <span className="font-mono font-semibold text-foreground bg-secondary/60 rounded-md px-1.5 py-0.5 text-xs inline-block">
-                              #{r.code}
-                            </span>
-                            <StatusBadge status={r.status} />
-                          </div>
+                          <span className="font-mono font-semibold text-foreground bg-secondary/60 rounded-md px-1.5 py-0.5 text-xs inline-block">
+                            #{r.code}
+                          </span>
                         ) : c.key === "status" ? (
-                          <StatusBadge status={r.status} />
+                          <PriorityStatusBadge row={r} />
                         ) : c.key === "classification" ? (
                           <span className="inline-flex items-center gap-1.5 text-foreground/90 text-xs font-medium">
                             {r.classification === "Issue" ? (
