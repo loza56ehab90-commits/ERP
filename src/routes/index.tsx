@@ -1912,102 +1912,104 @@ function RequestsPage() {
                     className="animate-row-enter border-b border-border/60 last:border-0 hover:bg-secondary/30 transition-colors table-row-hover"
                   >
                     {visibleColumns.map((c) => {
-                      if (c.key === "code") {
-                        return (
-                          <td key={c.key} className={cn("px-4 py-3.5 align-top", c.width)}>
-                            <span className="font-mono font-semibold text-foreground bg-secondary/60 rounded-md px-1.5 py-0.5 text-xs inline-block">
-                              #{r.code}
-                            </span>
-                          </td>
-                        );
-                      }
-                      if (c.key === "classification") {
-                        return (
-                          <td key={c.key} className={cn("px-4 py-3.5 align-top", c.width)}>
-                            <PriorityStatusBadge row={r} />
-                          </td>
-                        );
-                      }
-                      if (c.key === "request") {
-                        return (
-                          <td key={c.key} className={cn("px-4 py-3.5 align-top", c.width)}>
-                            <div className="max-w-md">
-                              <p
-                                dir="auto"
-                                className={cn(
-                                  "text-foreground/85 leading-relaxed text-sm",
-                                  !isExpanded && "line-clamp-2",
-                                )}
-                              >
-                                {r.request}
-                              </p>
-                              {r.request.length > 60 && (
-                                <button
-                                  onClick={() =>
-                                    setExpanded((s) => ({ ...s, [r.code]: !s[r.code] }))
-                                  }
-                                  className="mt-1 text-xs font-semibold text-accent hover:underline cursor-pointer"
+                      switch (c.key) {
+                        case "code":
+                          return (
+                            <td key={c.key} className="px-4 py-3.5 align-top w-24">
+                              <span className="font-mono font-semibold text-foreground bg-secondary/60 rounded-md px-1.5 py-0.5 text-xs inline-block">
+                                #{r.code}
+                              </span>
+                            </td>
+                          );
+                        case "classification":
+                          return (
+                            <td key={c.key} className="px-4 py-3.5 align-top w-48">
+                              <PriorityStatusBadge row={r} />
+                            </td>
+                          );
+                        case "project":
+                          return (
+                            <td key={c.key} className="px-4 py-3.5 align-top w-40">
+                              <span className="text-foreground/80 text-sm">
+                                {r.project || "—"}
+                              </span>
+                            </td>
+                          );
+                        case "request":
+                          return (
+                            <td key={c.key} className="px-4 py-3.5 align-top min-w-[300px]">
+                              <div className="max-w-md">
+                                <p
+                                  dir="auto"
+                                  className={cn(
+                                    "text-foreground/85 leading-relaxed text-sm",
+                                    !isExpanded && "line-clamp-2",
+                                  )}
                                 >
-                                  {isExpanded ? "Show less" : "Read more"}
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        );
-                      }
-                      if (c.key === "lastReply") {
-                        return (
-                          <td key={c.key} className={cn("px-4 py-3.5 align-top", c.width)}>
-                            <p dir="auto" className="text-muted-foreground text-xs line-clamp-3 max-w-xs leading-relaxed">
-                              {r.lastReply}
-                            </p>
-                          </td>
-                        );
-                      }
-                      if (c.key === "priority") {
-                        return (
-                          <td key={c.key} className={cn("px-4 py-3.5 align-top", c.width)}>
-                            <div className="flex flex-col items-start gap-0.5">
-                              <span className={cn(
-                                "inline-flex items-center justify-center h-7 w-7 rounded-full text-xs font-bold border-2",
-                                !r.priority
-                                  ? "bg-secondary text-muted-foreground border-border"
-                                  : Number(r.priority) <= 3
-                                  ? "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-700"
-                                  : Number(r.priority) <= 5
-                                  ? "bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700"
-                                  : Number(r.priority) <= 7
-                                  ? "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/40 dark:text-orange-300 dark:border-orange-700"
-                                  : "bg-red-100 text-red-700 border-red-300 dark:bg-red-900/40 dark:text-red-300 dark:border-red-700",
-                              )}>
-                                {r.priority || "—"}
+                                  {r.request}
+                                </p>
+                                {r.request.length > 60 && (
+                                  <button
+                                    onClick={() =>
+                                      setExpanded((s) => ({ ...s, [r.code]: !s[r.code] }))
+                                    }
+                                    className="mt-1 text-xs font-semibold text-accent hover:underline cursor-pointer"
+                                  >
+                                    {isExpanded ? "Show less" : "Read more"}
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          );
+                        case "lastReply":
+                          return (
+                            <td key={c.key} className="px-4 py-3.5 align-top w-64">
+                              <p dir="auto" className="text-muted-foreground text-xs line-clamp-3 max-w-xs leading-relaxed">
+                                {r.lastReply || "—"}
+                              </p>
+                            </td>
+                          );
+                        case "appName":
+                          return (
+                            <td key={c.key} className="px-4 py-3.5 align-top w-40">
+                              <span className="text-foreground/80 text-sm">
+                                {r.appName || "—"}
                               </span>
-                              <span className={cn(
-                                "text-[9px] font-semibold uppercase tracking-wide",
-                                !r.priority
-                                  ? "text-muted-foreground"
-                                  : Number(r.priority) <= 3
-                                  ? "text-emerald-600 dark:text-emerald-400"
-                                  : Number(r.priority) <= 5
-                                  ? "text-amber-600 dark:text-amber-400"
-                                  : Number(r.priority) <= 7
-                                  ? "text-orange-600 dark:text-orange-400"
-                                  : "text-red-600 dark:text-red-400"
-                              )}>
-                                {!r.priority ? "—" : Number(r.priority) <= 3 ? "Low" : Number(r.priority) <= 5 ? "Medium" : Number(r.priority) <= 7 ? "High" : "Critical"}
+                            </td>
+                          );
+                        case "closedEstimationTime":
+                          return (
+                            <td key={c.key} className="px-4 py-3.5 align-top w-48">
+                              <span className="text-foreground/80 text-sm">
+                                {r.closedEstimationTime || "—"}
                               </span>
-                            </div>
-                          </td>
-                        );
+                            </td>
+                          );
+                        case "createdDate":
+                          return (
+                            <td key={c.key} className="px-4 py-3.5 align-top w-32">
+                              <span className="text-foreground/80 text-sm">
+                                {r.createdDate || "—"}
+                              </span>
+                            </td>
+                          );
+                        case "createdBy":
+                          return (
+                            <td key={c.key} className="px-4 py-3.5 align-top w-40">
+                              <span className="text-foreground/80 text-sm">
+                                {r.createdBy || "—"}
+                              </span>
+                            </td>
+                          );
+                        default:
+                          return (
+                            <td key={c.key} className="px-4 py-3.5 align-top">
+                              <span className="text-foreground/80 text-sm">
+                                {String(r[c.key] ?? "—") || "—"}
+                              </span>
+                            </td>
+                          );
                       }
-                      
-                      return (
-                        <td key={c.key} className={cn("px-4 py-3.5 align-top", c.width)}>
-                          <span className="text-foreground/80 text-sm">
-                            {String(r[c.key] ?? "—") || "—"}
-                          </span>
-                        </td>
-                      );
                     })}
                     {/* Actions cell */}
                     <td className="px-4 py-3.5 align-top">
