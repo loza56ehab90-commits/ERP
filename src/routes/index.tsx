@@ -1792,114 +1792,16 @@ function RequestsPage() {
           <table className="w-full text-sm" style={{ tableLayout: "auto" }}>
             <thead>
               <tr className="border-b border-border table-header-gradient text-left text-xs uppercase tracking-wider text-muted-foreground/80">
-                {visibleColumns.map((c) => (
-                  <th key={c.key} className={cn("px-4 py-3 font-semibold", c.width)}>
-                    <div className="flex items-center gap-1.5">
-                      {c.label}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            aria-label={`${c.label} column menu`}
-                            className="rounded-md p-0.5 hover:bg-background/80 transition-colors cursor-pointer"
-                          >
-                            <ChevronDown className="h-3 w-3 opacity-60" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-48">
-                          <DropdownMenuItem onClick={() => setColSort(c.key, "asc")} className="cursor-pointer">
-                            <ArrowUp className="h-3.5 w-3.5" />
-                            Sort ascending
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setColSort(c.key, "desc")} className="cursor-pointer">
-                            <ArrowDown className="h-3.5 w-3.5" />
-                            Sort descending
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuSub>
-                            <DropdownMenuSubTrigger>
-                              <Eye className="h-3.5 w-3.5" />
-                              Display data
-                            </DropdownMenuSubTrigger>
-                            <DropdownMenuSubContent className="w-56 max-h-[60vh] overflow-y-auto">
-                              {COLUMNS.map((col) => (
-                                <DropdownMenuCheckboxItem
-                                  key={col.key}
-                                  checked={visibility[col.key]}
-                                  onCheckedChange={(v) =>
-                                    setVisibility({ ...visibility, [col.key]: !!v })
-                                  }
-                                  onSelect={(e) => e.preventDefault()}
-                                  className="cursor-pointer"
-                                >
-                                  {col.label}
-                                </DropdownMenuCheckboxItem>
-                              ))}
-                            </DropdownMenuSubContent>
-                          </DropdownMenuSub>
-                          <DropdownMenuSub>
-                            <DropdownMenuSubTrigger>
-                              <FilterIcon className="h-3.5 w-3.5" />
-                              Filter
-                            </DropdownMenuSubTrigger>
-                            <DropdownMenuSubContent className="w-64 p-2">
-                              <Input
-                                autoFocus
-                                value={colFilters[c.key as string] ?? ""}
-                                onChange={(e) =>
-                                  setColFilters((s) => ({
-                                    ...s,
-                                    [c.key as string]: e.target.value,
-                                  }))
-                                }
-                                placeholder={`Filter ${c.label.toLowerCase()}…`}
-                                className="h-8 text-xs"
-                              />
-                              {colFilters[c.key as string] && (
-                                <button
-                                  onClick={() =>
-                                    setColFilters((s) => ({ ...s, [c.key as string]: "" }))
-                                  }
-                                  className="mt-2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-                                >
-                                  Clear filter
-                                </button>
-                              )}
-                            </DropdownMenuSubContent>
-                          </DropdownMenuSub>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                      {sort?.key === c.key && (
-                        <span className="text-accent">
-                          {sort.dir === "asc" ? (
-                            <ArrowUp className="h-3 w-3" />
-                          ) : (
-                            <ArrowDown className="h-3 w-3" />
-                          )}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                ))}
+                <th className="px-4 py-3 font-semibold w-24">Code</th>
+                <th className="px-4 py-3 font-semibold w-48">Classification</th>
+                <th className="px-4 py-3 font-semibold w-40">Project</th>
+                <th className="px-4 py-3 font-semibold min-w-[300px]">Request</th>
+                <th className="px-4 py-3 font-semibold w-64">Last Reply</th>
+                <th className="px-4 py-3 font-semibold w-40">App Name</th>
+                <th className="px-4 py-3 font-semibold w-48">Est. Close Time</th>
+                <th className="px-4 py-3 font-semibold w-32">Created Date</th>
+                <th className="px-4 py-3 font-semibold w-40">Created By</th>
                 <th className="px-4 py-3 font-semibold text-right">Actions</th>
-              </tr>
-              {/* Column filter row */}
-              <tr className="border-b border-border bg-secondary/30">
-                {visibleColumns.map((c) => (
-                  <th key={c.key} className="px-3 py-2">
-                    <div className="relative">
-                      <FilterIcon className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground/60" />
-                      <input
-                        value={colFilters[c.key as string] ?? ""}
-                        onChange={(e) =>
-                          setColFilters((s) => ({ ...s, [c.key as string]: e.target.value }))
-                        }
-                        placeholder="Filter…"
-                        className="h-7 w-full rounded-lg border border-border bg-background pl-7 pr-2 text-xs placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/30 transition"
-                      />
-                    </div>
-                  </th>
-                ))}
-                <th className="px-3 py-2" />
               </tr>
             </thead>
             <tbody>
@@ -1911,107 +1813,76 @@ function RequestsPage() {
                     style={{ animationDelay: `${rowIdx * 45}ms` }}
                     className="animate-row-enter border-b border-border/60 last:border-0 hover:bg-secondary/30 transition-colors table-row-hover"
                   >
-                    {visibleColumns.map((c) => {
-                      switch (c.key) {
-                        case "code":
-                          return (
-                            <td key={c.key} className="px-4 py-3.5 align-top w-24">
-                              <span className="font-mono font-semibold text-foreground bg-secondary/60 rounded-md px-1.5 py-0.5 text-xs inline-block">
-                                #{r.code}
-                              </span>
-                            </td>
-                          );
-                        case "classification":
-                          return (
-                            <td key={c.key} className="px-4 py-3.5 align-top w-48">
-                              <PriorityStatusBadge row={r} />
-                            </td>
-                          );
-                        case "project":
-                          return (
-                            <td key={c.key} className="px-4 py-3.5 align-top w-40">
-                              <span className="text-foreground/80 text-sm">
-                                {r.project || "—"}
-                              </span>
-                            </td>
-                          );
-                        case "request":
-                          return (
-                            <td key={c.key} className="px-4 py-3.5 align-top min-w-[300px]">
-                              <div className="max-w-md">
-                                <p
-                                  dir="auto"
-                                  className={cn(
-                                    "text-foreground/85 leading-relaxed text-sm",
-                                    !isExpanded && "line-clamp-2",
-                                  )}
-                                >
-                                  {r.request}
-                                </p>
-                                {r.request.length > 60 && (
-                                  <button
-                                    onClick={() =>
-                                      setExpanded((s) => ({ ...s, [r.code]: !s[r.code] }))
-                                    }
-                                    className="mt-1 text-xs font-semibold text-accent hover:underline cursor-pointer"
-                                  >
-                                    {isExpanded ? "Show less" : "Read more"}
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          );
-                        case "lastReply":
-                          return (
-                            <td key={c.key} className="px-4 py-3.5 align-top w-64">
-                              <p dir="auto" className="text-muted-foreground text-xs line-clamp-3 max-w-xs leading-relaxed">
-                                {r.lastReply || "—"}
-                              </p>
-                            </td>
-                          );
-                        case "appName":
-                          return (
-                            <td key={c.key} className="px-4 py-3.5 align-top w-40">
-                              <span className="text-foreground/80 text-sm">
-                                {r.appName || "—"}
-                              </span>
-                            </td>
-                          );
-                        case "closedEstimationTime":
-                          return (
-                            <td key={c.key} className="px-4 py-3.5 align-top w-48">
-                              <span className="text-foreground/80 text-sm">
-                                {r.closedEstimationTime || "—"}
-                              </span>
-                            </td>
-                          );
-                        case "createdDate":
-                          return (
-                            <td key={c.key} className="px-4 py-3.5 align-top w-32">
-                              <span className="text-foreground/80 text-sm">
-                                {r.createdDate || "—"}
-                              </span>
-                            </td>
-                          );
-                        case "createdBy":
-                          return (
-                            <td key={c.key} className="px-4 py-3.5 align-top w-40">
-                              <span className="text-foreground/80 text-sm">
-                                {r.createdBy || "—"}
-                              </span>
-                            </td>
-                          );
-                        default:
-                          return (
-                            <td key={c.key} className="px-4 py-3.5 align-top">
-                              <span className="text-foreground/80 text-sm">
-                                {String(r[c.key] ?? "—") || "—"}
-                              </span>
-                            </td>
-                          );
-                      }
-                    })}
-                    {/* Actions cell */}
+                    {/* Column 1: Code */}
+                    <td className="px-4 py-3.5 align-top w-24">
+                      <span className="font-mono font-semibold text-foreground bg-secondary/60 rounded-md px-1.5 py-0.5 text-xs inline-block">
+                        #{r.code}
+                      </span>
+                    </td>
+
+                    {/* Column 2: Classification */}
+                    <td className="px-4 py-3.5 align-top w-48">
+                      <PriorityStatusBadge row={r} />
+                    </td>
+
+                    {/* Column 3: Project */}
+                    <td className="px-4 py-3.5 align-top w-40">
+                      <span className="text-foreground/80 text-sm">{r.project || "—"}</span>
+                    </td>
+
+                    {/* Column 4: Request */}
+                    <td className="px-4 py-3.5 align-top min-w-[300px]">
+                      <div className="max-w-md">
+                        <p
+                          dir="auto"
+                          className={cn(
+                            "text-foreground/85 leading-relaxed text-sm",
+                            !isExpanded && "line-clamp-2",
+                          )}
+                        >
+                          {r.request}
+                        </p>
+                        {r.request.length > 60 && (
+                          <button
+                            onClick={() =>
+                              setExpanded((s) => ({ ...s, [r.code]: !s[r.code] }))
+                            }
+                            className="mt-1 text-xs font-semibold text-accent hover:underline cursor-pointer"
+                          >
+                            {isExpanded ? "Show less" : "Read more"}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Column 5: Last Reply */}
+                    <td className="px-4 py-3.5 align-top w-64">
+                      <p dir="auto" className="text-muted-foreground text-xs line-clamp-3 max-w-xs leading-relaxed">
+                        {r.lastReply || "—"}
+                      </p>
+                    </td>
+
+                    {/* Column 6: App Name */}
+                    <td className="px-4 py-3.5 align-top w-40">
+                      <span className="text-foreground/80 text-sm">{r.appName || "—"}</span>
+                    </td>
+
+                    {/* Column 7: Est. Close Time */}
+                    <td className="px-4 py-3.5 align-top w-48">
+                      <span className="text-foreground/80 text-sm">{r.closedEstimationTime || "—"}</span>
+                    </td>
+
+                    {/* Column 8: Created Date */}
+                    <td className="px-4 py-3.5 align-top w-32">
+                      <span className="text-foreground/80 text-sm">{r.createdDate || "—"}</span>
+                    </td>
+
+                    {/* Column 9: Created By */}
+                    <td className="px-4 py-3.5 align-top w-40">
+                      <span className="text-foreground/80 text-sm">{r.createdBy || "—"}</span>
+                    </td>
+
+
                     <td className="px-4 py-3.5 align-top">
                       <div className="flex items-center gap-1.5 flex-nowrap">
                         <button
@@ -2069,7 +1940,7 @@ function RequestsPage() {
               })}
               {pageRows.length === 0 && (
                 <tr>
-                  <td colSpan={visibleColumns.length + 1} className="px-4 py-20 text-center">
+                  <td colSpan={10} className="px-4 py-20 text-center">
                     <div className="mx-auto max-w-sm animate-fade-up">
                       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary/80 text-muted-foreground mb-4">
                         <Inbox className="h-6 w-6" />
