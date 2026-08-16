@@ -210,8 +210,11 @@
 }
 
 @keyframes row-enter {
-  from { opacity: 0; transform: translateX(-10px); }
-  to   { opacity: 1; transform: translateX(0); }
+  /* translateX removed: applying transform to <tr> is invalid in table layout
+     and caused the first Code cell to be clipped by overflow-x:auto.
+     Fade-only entrance is safe and still looks smooth. */
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 @keyframes glow-slide {
@@ -478,11 +481,16 @@
 }
 
 /* ─── Table row premium hover ─────────────────────────────────────── */
+/* NOTE: position:relative / ::before on <tr> is ignored by browsers in table
+   layout — the pseudo-element leaked out and shifted every row rightward.
+   Moved the accent bar to td:first-child which is a valid positioning parent. */
 .table-row-hover {
-  position: relative;
   transition: background-color 0.15s ease;
 }
-.table-row-hover::before {
+.table-row-hover td:first-child {
+  position: relative;
+}
+.table-row-hover td:first-child::before {
   content: '';
   position: absolute;
   left: 0;
@@ -494,8 +502,17 @@
   transition: opacity 0.18s ease;
   border-radius: 0 2px 2px 0;
 }
-.table-row-hover:hover::before {
+.table-row-hover:hover td:first-child::before {
   opacity: 1;
+}
+
+/* ─── RTL-safe text in table cells ───────────────────────────────── */
+/* Prevents dir=auto paragraphs (Arabic text) from overflowing their <td>
+   and pushing the table wider than the header row. */
+td p[dir="auto"] {
+  overflow-wrap: break-word;
+  word-break: break-word;
+  text-align: start;
 }
 
 /* ─── Premium scrollbar ───────────────────────────────────────────── */
